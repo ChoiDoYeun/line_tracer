@@ -42,7 +42,7 @@ motor2 = MotorController(16, 13, 26) # left motor
 
 
 try:
-    motor1.forward(50)
+    motor1.forward(50 * 1.1853)
     motor2.stop()
     time.sleep(3)
     
