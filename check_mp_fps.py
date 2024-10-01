@@ -49,12 +49,10 @@ def process_image(image_path):
             if len(x_positions) == 2:
                 left_x, right_x = sorted(x_positions)
                 line_center_x = (left_x + right_x) // 2
+                diff = line_center_x - 211
 
-                # 중앙값에 초록색 점을 찍기
-                cv2.circle(line_img, (line_center_x, y), 5, (0, 255, 0), -1)
-
-                # 해상도 중앙에 빨간색 점을 찍기
-                cv2.circle(line_img, (211, y), 5, (0, 0, 255), -1)
+                print(f"y = {y}에서 두 선 사이의 중앙값: {line_center_x}")
+                print(f"중앙값과 211의 차이: {diff}")
 
                 found = True
 
@@ -62,35 +60,34 @@ def process_image(image_path):
         if found:
             break
 
-    return line_img
+    return line_center_x, diff
 
 # 모든 jpg 파일 경로 가져오기
 image_paths = glob(os.path.join(image_dir, "*.jpg"))
 
-### 멀티프로세싱 없이 처리 시간 측정 ###
-start_time_single = time.time()
+### 단일 프로세싱 시간 측정 ###
+start_time_single = time.perf_counter()
 
-# 단일 프로세싱을 사용한 처리
 for image_path in image_paths:
     process_image(image_path)
 
-end_time_single = time.time()
+end_time_single = time.perf_counter()
 
 # 단일 프로세싱 평균 FPS 계산
 total_time_single = end_time_single - start_time_single
-fps_single = len(image_paths) / total_time_single
-print(f"Single Processing FPS: {fps_single:.8f}")
+fps_single = len(image_paths) / total_time_single if total_time_single > 0 else 0
+print(f"Single Processing FPS: {fps_single:.6f}")
 
-### 멀티프로세싱을 이용한 처리 시간 측정 ###
-start_time_multi = time.time()
+### 멀티프로세싱 시간 측정 ###
+start_time_multi = time.perf_counter()
 
 # 멀티프로세싱을 이용한 이미지 처리
 pool = mp.Pool(mp.cpu_count())
 processed_images = pool.map(process_image, image_paths)
 
-end_time_multi = time.time()
+end_time_multi = time.perf_counter()
 
 # 멀티프로세싱 평균 FPS 계산
 total_time_multi = end_time_multi - start_time_multi
-fps_multi = len(image_paths) / total_time_multi
-print(f"Multi Processing FPS: {fps_multi:.8f}")
+fps_multi = len(image_paths) / total_time_multi if total_time_multi > 0 else 0
+print(f"Multi Processing FPS: {fps_multi:.6f}")
