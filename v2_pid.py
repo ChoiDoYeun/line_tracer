@@ -62,7 +62,7 @@ def process_image(frame):
                 found = True
                 break  # 선을 찾으면 반복 종료
 
-    return diff
+    return line_center_x, diff
 
 # 메인 제어 루프
 def main():
@@ -85,7 +85,7 @@ def main():
         current_time = time.time()
 
         # 이미지 처리 및 중앙값 계산
-        diff = process_image(frame)
+        line_center_x, diff = process_image(frame)
 
         if line_center_x is not None:
             # PID 제어를 위한 시간 간격 계산
