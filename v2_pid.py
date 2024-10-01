@@ -1,9 +1,10 @@
 import cv2
 import numpy as np
 import time
-import math  # NaN 체크에 사용
+import math
+import RPi.GPIO as GPIO
 
-# PID 상수 (조정이 필요할 수 있음)
+# PID 상수 (적절하게 조정해야 함)
 Kp = 0.0
 Ki = 0.0
 Kd = 0.0
@@ -11,6 +12,46 @@ Kd = 0.0
 # PID 제어 변수
 prev_error = 0.0
 integral = 0.0
+
+# MotorController 클래스
+class MotorController:
+    def __init__(self, en, in1, in2):
+        self.en = en
+        self.in1 = in1
+        self.in2 = in2
+        GPIO.setup(self.en, GPIO.OUT)
+        GPIO.setup(self.in1, GPIO.OUT)
+        GPIO.setup(self.in2, GPIO.OUT)
+        self.pwm = GPIO.PWM(self.en, 100)
+        self.pwm.start(0)
+
+    def set_speed(self, speed):
+        # 속도를 -100에서 100 사이로 제한
+        speed = max(min(speed, 100), -100)
+        self.pwm.ChangeDutyCycle(abs(speed))
+
+    def forward(self, speed=40):
+        self.set_speed(speed)
+        GPIO.output(self.in1, GPIO.HIGH)
+        GPIO.output(self.in2, GPIO.LOW)
+
+    def backward(self, speed=40):
+        self.set_speed(speed)
+        GPIO.output(self.in1, GPIO.LOW)
+        GPIO.output(self.in2, GPIO.HIGH)
+
+    def stop(self):
+        self.set_speed(0)
+        GPIO.output(self.in1, GPIO.LOW)
+        GPIO.output(self.in2, GPIO.LOW)
+
+    def cleanup(self):
+        self.pwm.stop()
+        GPIO.cleanup([self.en, self.in1, self.in2])
+
+# 왼쪽 모터와 오른쪽 모터 설정
+motor1 = MotorController(18, 17, 27)  # 왼쪽 모터
+motor2 = MotorController(16, 13, 26)  # 오른쪽 모터
 
 # PID 제어 함수
 def pid_control(error, dt):
@@ -23,6 +64,25 @@ def pid_control(error, dt):
 
     # Return the PID control result
     return Kp * proportional + Ki * integral + Kd * derivative
+
+# 모터 제어 함수 (보정 적용)
+def control_motors(left_speed, right_speed):
+    # 우측 모터 속도에 보정 적용 (1.1853배)
+    right_speed = right_speed * 1.1853
+
+    # 속도 범위 제한 (리밋)
+    left_speed = max(min(left_speed, 100), -100)
+    right_speed = max(min(right_speed, 100), -100)
+
+    if left_speed >= 0:
+        motor1.forward(left_speed)
+    else:
+        motor1.backward(-left_speed)
+
+    if right_speed >= 0:
+        motor2.forward(right_speed)
+    else:
+        motor2.backward(-right_speed)
 
 # 이미지 처리 함수
 def process_image(frame):
@@ -53,7 +113,7 @@ def process_image(frame):
                 if y1 <= y <= y2 or y2 <= y <= y1:
                     x = int(x1 + (y - y1) * (x2 - x1) / (y2 - y1))
                     x_positions.append(x)
-            
+
             # 두 선이 감지되었다면, 두 선 사이의 중앙값을 계산
             if len(x_positions) == 2:
                 left_x, right_x = sorted(x_positions)
@@ -81,41 +141,47 @@ def main():
         print("카메라를 열 수 없습니다.")
         return
 
-    while True:
-        ret, frame = cap.read()
-        if not ret:
-            print("프레임을 가져올 수 없습니다.")
-            break
+    try:
+        while True:
+            ret, frame = cap.read()
+            if not ret:
+                print("프레임을 가져올 수 없습니다.")
+                break
 
-        # 현재 시간 계산
-        current_time = time.time()
+            # 현재 시간 계산
+            current_time = time.time()
 
-        # 이미지 처리 및 중앙값 계산
-        line_center_x, diff = process_image(frame)
+            # 이미지 처리 및 중앙값 계산
+            line_center_x, diff = process_image(frame)
 
-        # NaN 검사 추가
-        if math.isnan(line_center_x) or math.isnan(diff):
-            print("경고: 계산된 값이 NaN입니다.")
-            continue
+            # NaN 검사 추가
+            if math.isnan(line_center_x) or math.isnan(diff):
+                print("경고: 계산된 값이 NaN입니다.")
+                continue
 
-        # PID 제어를 위한 시간 간격 계산
-        dt = time.time() - current_time
+            # PID 제어를 위한 시간 간격 계산
+            dt = time.time() - current_time
 
-        # PID 제어 값 계산
-        pid_value = pid_control(diff, dt)
+            # PID 제어 값 계산
+            pid_value = pid_control(diff, dt)
 
-        # 속도 계산
-        base_speed = 50  # 기본 속도
-        left_motor_speed = base_speed - pid_value  # 왼쪽 속도 제어
-        right_motor_speed = base_speed + pid_value  # 오른쪽 속도 제어
+            # 속도 계산
+            base_speed = 50  # 기본 속도
+            left_motor_speed = base_speed - pid_value  # 왼쪽 속도 제어
+            right_motor_speed = base_speed + pid_value  # 오른쪽 속도 제어
 
-        # 모터 속도 출력 (실제 모터 제어 함수 대신 print로 출력)
-        print(f"Left Motor Speed: {left_motor_speed}")
-        print(f"Right Motor Speed: {right_motor_speed}")
+            # 모터 제어 함수 호출
+            control_motors(left_motor_speed, right_motor_speed)
 
-        # 'q' 키를 누르면 종료
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            break
+            # 'q' 키를 누르면 종료
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                break
+    finally:
+        # 종료 시 모든 모터 정지 및 GPIO 정리
+        motor1.stop()
+        motor2.stop()
+        motor1.cleanup()
+        motor2.cleanup()
 
     # 카메라 해제
     cap.release()
@@ -123,4 +189,6 @@ def main():
 
 # 프로그램 실행
 if __name__ == "__main__":
+    # GPIO 모드 설정
+    GPIO.setmode(GPIO.BCM)
     main()
