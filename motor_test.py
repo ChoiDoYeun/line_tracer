@@ -42,18 +42,13 @@ motor2 = MotorController(16, 13, 26) # left motor
 
 
 try:
-    print("motor forward")
-    motor1.forward(85)
-    motor2.forward(85)
-    time.sleep(5)
-
-
-    print("motor stop")
-    motor1.stop()
+    motor1.forward(50)
     motor2.stop()
-    time.sleep(5)
+    time.sleep(1)
     
-    print("motorbackward")
+    motor2.forward(50)
+    motor1.stop()
+    time.sleep(1)
 
     motor1.backward(50)
     motor2.backward(50)
