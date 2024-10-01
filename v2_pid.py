@@ -4,13 +4,13 @@ import time
 import RPi.GPIO as GPIO
 
 # PID control coefficients
-Kp = 0.200
+Kp = 0.000
 Ki = 0.000
 Kd = 0.000
 
 prev_error = 0
 integral = 0
-setpoint = 160  # Adjusted for smaller ROI
+setpoint = 320  # Adjusted for smaller ROI
 prev_time = time.time()
 
 GPIO.setmode(GPIO.BCM)
@@ -62,15 +62,15 @@ if not cap.isOpened():
     exit()
 
 # Set lower resolution for faster processing
-cap.set(cv2.CAP_PROP_FRAME_WIDTH, 320)
-cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 240)
+cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 180)
 
 def pid_control(error, dt):
     global prev_error, integral
 
     proportional = error
     integral += error * dt
-    derivative = (error - prev_error) / dt
+    derivative = (error - prev_error) / dt if dt > 0 else 0  # Prevent division by zero
     prev_error = error
 
     # Return the PID control result
@@ -117,24 +117,18 @@ try:
 
             # Compute motor speeds
             base_speed = 60
+            correction_factor = 1.200
+            
             left_motor_speed = base_speed - steering_adjustment
             right_motor_speed = base_speed + steering_adjustment
 
             # Limit motor speeds to the range [-100, 100]
-            right_motor_final_speed = max(min(right_motor_speed, 100), -100)
-            left_motor_final_speed = max(min(left_motor_speed - 15, 100), -100)
+            right_motor_final_speed = max(min(right_motor_speed * correction_factor, 100), 30)
+            left_motor_final_speed = max(min(left_motor_speed, 100), 30)
 
-            # Control the right motor
-            if right_motor_final_speed >= 0:
-                motor1.forward(right_motor_final_speed)
-            else:
-                motor1.backward(abs(right_motor_final_speed))
+            motor1.forward(right_motor_final_speed)
 
-            # Control the left motor
-            if left_motor_final_speed >= 0:
-                motor2.forward(left_motor_final_speed)
-            else:
-                motor2.backward(abs(left_motor_final_speed))
+            motor2.forward(left_motor_final_speed)
 
             print(f"Left Motor Speed: {left_motor_final_speed}, Right Motor Speed: {right_motor_final_speed}, Error: {error}")
         else:
