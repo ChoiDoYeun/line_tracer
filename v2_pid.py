@@ -2,16 +2,21 @@ import cv2
 import numpy as np
 import time
 import RPi.GPIO as GPIO
+import threading
 
 # PID control coefficients
-Kp = 0.000
+Kp = 1.000
 Ki = 0.000
 Kd = 0.000
 
 prev_error = 0
 integral = 0
-setpoint = 320  # Adjusted for smaller ROI
+setpoint = 320  # Setpoint for the center of the frame
 prev_time = time.time()
+
+# Shared variables between threads
+error_lock = threading.Lock()  # Lock for thread-safe access to error
+error = 0  # Shared error variable
 
 GPIO.setmode(GPIO.BCM)
 
@@ -25,8 +30,8 @@ class MotorController:
         self.pwm.start(0)
 
     def set_speed(self, speed):
-        # Limit the speed between -10 and 100
-        speed = max(min(speed, 100), -10)
+        # Limit the speed between 0 and 100 (PWM duty cycle should not be negative)
+        speed = max(min(speed, 100), 0)
         self.pwm.ChangeDutyCycle(speed)
 
     def forward(self, speed=40):
@@ -54,17 +59,7 @@ class MotorController:
 motor1 = MotorController(18, 17, 27)  # Right motor
 motor2 = MotorController(16, 13, 26)  # Left motor
 
-# Initialize the camera
-cap = cv2.VideoCapture(0, cv2.CAP_V4L2)
-
-if not cap.isOpened():
-    print("Error: Cannot open webcam")
-    exit()
-
-# Set lower resolution for faster processing
-cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
-cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 180)
-
+# PID control function
 def pid_control(error, dt):
     global prev_error, integral
 
@@ -76,18 +71,26 @@ def pid_control(error, dt):
     # Return the PID control result
     return Kp * proportional + Ki * integral + Kd * derivative
 
-try:
+# Function to capture and process frames from the camera (Thread 1)
+def camera_thread():
+    global error
+
+    # Initialize the camera
+    cap = cv2.VideoCapture(0, cv2.CAP_V4L2)
+
+    if not cap.isOpened():
+        print("Error: Cannot open webcam")
+        return
+
+    # Set lower resolution for faster processing
+    cap.set(cv2.CAP_PROP_FRAME_WIDTH, 320)
+    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 240)
+
     while True:
-        start_time = time.time()  # Measure frame processing start time
-        
         ret, frame = cap.read()
         if not ret:
             print("Error: Failed to capture image")
             break
-
-        current_time = time.time()
-        dt = current_time - prev_time
-        prev_time = current_time 
 
         # Convert frame to grayscale
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
@@ -106,50 +109,74 @@ try:
         if len(points[0]) > 1:
             # Calculate the center of the detected line
             middle = (points[0][0] + points[0][1]) // 2
-            error = middle - setpoint  # Calculate error from the center
+            new_error = middle - setpoint  # Calculate error from the center
 
-            # Compute the PID adjustment
-            current_time = time.time()
-            dt = current_time - prev_time if 'prev_time' in locals() else 0.1
-            prev_time = current_time
+            # Lock the shared error variable and update it
+            with error_lock:
+                error = new_error
 
-            steering_adjustment = pid_control(error, dt)
-
-            # Compute motor speeds
-            base_speed = 60
-            correction_factor = 1.200
-            
-            left_motor_speed = base_speed - steering_adjustment
-            right_motor_speed = base_speed + steering_adjustment
-
-            # Limit motor speeds to the range [-100, 100]
-            right_motor_final_speed = max(min(right_motor_speed * correction_factor, 100), 30)
-            left_motor_final_speed = max(min(left_motor_speed, 100), 30)
-
-            motor1.forward(right_motor_final_speed)
-
-            motor2.forward(left_motor_final_speed)
-
-            print(f"Left Motor Speed: {left_motor_final_speed}, Right Motor Speed: {right_motor_final_speed}, Error: {error}")
         else:
-            # Stop the motors if no line is detected
-            motor1.stop()
-            motor2.stop()
-            print("Line not detected. Motors stopped.")
+            print("Line not detected.")
 
-        end_time = time.time()
-        print(f"Frame processing time: {end_time - start_time:.4f} seconds")  # Print frame processing time
+        time.sleep(0.01)  # Small delay to avoid excessive CPU usage
+
+    cap.release()
+
+# Function to control the motors based on the PID control (Thread 2)
+def motor_control_thread():
+    global error
+    prev_time = time.time()
+
+    while True:
+        current_time = time.time()
+        dt = current_time - prev_time
+        prev_time = current_time
+
+        # Lock the shared error variable and get the current error value
+        with error_lock:
+            current_error = error
+
+        # Compute the PID adjustment
+        steering_adjustment = pid_control(current_error, dt)
+
+        # Compute motor speeds
+        base_speed = 60
+        correction_factor = 1.200
+        
+        left_motor_speed = base_speed - steering_adjustment
+        right_motor_speed = base_speed + steering_adjustment
+
+        # Limit motor speeds to the range [0, 100]
+        right_motor_final_speed = max(min(right_motor_speed * correction_factor, 100), 0)
+        left_motor_final_speed = max(min(left_motor_speed, 100), 0)
+
+        motor1.forward(right_motor_final_speed)
+        motor2.forward(left_motor_final_speed)
+
+        print(f"Left Motor Speed: {left_motor_final_speed}, Right Motor Speed: {right_motor_final_speed}, Error: {current_error}")
+
+        time.sleep(0.01)  # Small delay to avoid excessive CPU usage
+
+# Start the threads
+camera_thread = threading.Thread(target=camera_thread)
+motor_control_thread = threading.Thread(target=motor_control_thread)
+
+camera_thread.start()
+motor_control_thread.start()
+
+try:
+    # Wait for both threads to complete
+    camera_thread.join()
+    motor_control_thread.join()
 
 except KeyboardInterrupt:
     # Clean up on keyboard interrupt
     motor1.cleanup()
     motor2.cleanup()
     GPIO.cleanup()
-    cap.release()
 
 finally:
     # Clean up resources
     motor1.cleanup()
     motor2.cleanup()
     GPIO.cleanup()
-    cap.release()
