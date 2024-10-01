@@ -1,9 +1,10 @@
 import cv2
 import numpy as np
 import time
+import math  # NaN 체크에 사용
 
 # PID 상수 (조정이 필요할 수 있음)
-Kp = 1.0
+Kp = 0.0
 Ki = 0.0
 Kd = 0.0
 
@@ -62,6 +63,11 @@ def process_image(frame):
                 found = True
                 break  # 선을 찾으면 반복 종료
 
+    # 라인이 감지되지 않았을 때 기본값 설정
+    if not found:
+        line_center_x = 211  # 중앙으로 설정
+        diff = 0
+
     return line_center_x, diff
 
 # 메인 제어 루프
@@ -87,21 +93,25 @@ def main():
         # 이미지 처리 및 중앙값 계산
         line_center_x, diff = process_image(frame)
 
-        if line_center_x is not None:
-            # PID 제어를 위한 시간 간격 계산
-            dt = time.time() - current_time
+        # NaN 검사 추가
+        if math.isnan(line_center_x) or math.isnan(diff):
+            print("경고: 계산된 값이 NaN입니다.")
+            continue
 
-            # PID 제어 값 계산
-            pid_value = pid_control(diff, dt)
+        # PID 제어를 위한 시간 간격 계산
+        dt = time.time() - current_time
 
-            # 속도 계산
-            base_speed = 50  # 기본 속도
-            left_motor_speed = base_speed - pid_value  # 왼쪽 속도 제어
-            right_motor_speed = base_speed + pid_value  # 오른쪽 속도 제어
+        # PID 제어 값 계산
+        pid_value = pid_control(diff, dt)
 
-            # 모터 속도 출력 (실제 모터 제어 함수 대신 print로 출력)
-            print(f"Left Motor Speed: {left_motor_speed}")
-            print(f"Right Motor Speed: {right_motor_speed}")
+        # 속도 계산
+        base_speed = 50  # 기본 속도
+        left_motor_speed = base_speed - pid_value  # 왼쪽 속도 제어
+        right_motor_speed = base_speed + pid_value  # 오른쪽 속도 제어
+
+        # 모터 속도 출력 (실제 모터 제어 함수 대신 print로 출력)
+        print(f"Left Motor Speed: {left_motor_speed}")
+        print(f"Right Motor Speed: {right_motor_speed}")
 
         # 'q' 키를 누르면 종료
         if cv2.waitKey(1) & 0xFF == ord('q'):
