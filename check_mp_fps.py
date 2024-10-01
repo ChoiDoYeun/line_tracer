@@ -6,7 +6,7 @@ import time
 import multiprocessing as mp
 
 # 이미지 경로 설정
-image_dir = "./line_tracer/data"
+image_dir = "home/dodo/line_tracer/data/"
 
 def process_image(image_path):
     # 이미지 읽기
