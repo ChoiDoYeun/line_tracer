@@ -79,7 +79,7 @@ end_time_single = time.time()
 # 단일 프로세싱 평균 FPS 계산
 total_time_single = end_time_single - start_time_single
 fps_single = len(image_paths) / total_time_single
-print(f"Single Processing FPS: {fps_single:.2f}")
+print(f"Single Processing FPS: {fps_single:.8f}")
 
 ### 멀티프로세싱을 이용한 처리 시간 측정 ###
 start_time_multi = time.time()
@@ -93,4 +93,4 @@ end_time_multi = time.time()
 # 멀티프로세싱 평균 FPS 계산
 total_time_multi = end_time_multi - start_time_multi
 fps_multi = len(image_paths) / total_time_multi
-print(f"Multi Processing FPS: {fps_multi:.2f}")
+print(f"Multi Processing FPS: {fps_multi:.8f}")
