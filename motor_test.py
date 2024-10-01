@@ -44,19 +44,12 @@ motor2 = MotorController(16, 13, 26) # left motor
 try:
     motor1.forward(50)
     motor2.stop()
-    time.sleep(1)
+    time.sleep(3)
     
     motor2.forward(50)
     motor1.stop()
-    time.sleep(1)
+    time.sleep(3)
 
-    motor1.backward(50)
-    motor2.backward(50)
-    time.sleep(5)
-    
-    print("motor stop")
-    motor1.stop()
-    motor2.stop()
 except KeyboardInterrupt:
     motor1.cleanup()
     motor2.cleanup()    
