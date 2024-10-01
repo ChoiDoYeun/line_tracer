@@ -48,6 +48,8 @@ class MotorController:
     def cleanup(self):
         self.pwm.stop()
         GPIO.cleanup([self.en, self.in1, self.in2])
+        
+GPIO.setmode(GPIO.BCM)
 
 # 왼쪽 모터와 오른쪽 모터 설정
 motor1 = MotorController(18, 17, 27)  # 왼쪽 모터
