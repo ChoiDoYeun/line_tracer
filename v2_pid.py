@@ -5,9 +5,9 @@ import math
 import RPi.GPIO as GPIO
 
 # PID 상수 (적절하게 조정해야 함)
-Kp = 8.00
+Kp = 7.50
 Ki = 0.00
-Kd = 0.05
+Kd = 0.00
 
 # PID 제어 변수
 prev_error = 0.0
