@@ -45,34 +45,11 @@ motor4 = MotorController(25, 8, 7)
 
 try:
     motor1.forward(80)
-    motor2.stop()
-    motor3.stop()
-    motor4.stop()
-    print("모터1")
-    time.sleep(3)
-    # Motor 2 작동
-    motor1.stop()
     motor2.forward(80)
-    motor3.stop()
-    motor4.stop()
-    print("모터2")
-    time.sleep(3)
-    
-    # Motor 3 작동
-    motor1.stop()
-    motor2.stop()
     motor3.forward(80)
-    motor4.stop()
-    print("모터3")
-    time.sleep(3)
-    
-    # Motor 4 작동
-    motor1.stop()
-    motor2.stop()
-    motor3.stop()
     motor4.forward(80)
-    print("모터4")
-    time.sleep(3)
+    print("모터1")
+    time.sleep(2)
     
     # 모든 모터 정지
     motor1.stop()
