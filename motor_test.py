@@ -40,7 +40,7 @@ class MotorController:
 motor1 = MotorController(18, 17, 27)
 motor2 = MotorController(22, 23, 24)
 motor3 = MotorController(9, 10, 11)
-motor4 = MotorControlle(25, 8, 7)
+motor4 = MotorController(25, 8, 7)
 
 
 try:
