@@ -7,7 +7,7 @@ import RPi.GPIO as GPIO
 # PID 상수 (적절하게 조정해야 함)
 Kp = 2.50
 Ki = 0.00
-Kd = 0.01
+Kd = 0.00
 
 # PID 제어 변수
 prev_error = 0.0
