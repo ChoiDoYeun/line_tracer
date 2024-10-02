@@ -37,26 +37,57 @@ class MotorController:
         GPIO.cleanup([self.en, self.in1, self.in2])
 
 
-motor1 = MotorController(18, 17, 27) #right motor
-motor2 = MotorController(16, 13, 26) # left motor
+motor1 = MotorController(18, 17, 27)
+motor2 = MotorController(22, 23, 24)
+motor3 = MotorController(9, 10, 11)
+motor4 = MotorControlle(25, 8, 7)
 
 
 try:
-    motor1.forward(80 * 1.1853)
+    motor1.forward(80)
     motor2.stop()
+    motor3.stop()
+    motor4.stop()
     time.sleep(3)
     
-    motor2.forward(80)
+    # Motor 2 작동
     motor1.stop()
+    motor2.forward(80)
+    motor3.stop()
+    motor4.stop()
     time.sleep(3)
+    
+    # Motor 3 작동
+    motor1.stop()
+    motor2.stop()
+    motor3.forward(80)
+    motor4.stop()
+    time.sleep(3)
+    
+    # Motor 4 작동
+    motor1.stop()
+    motor2.stop()
+    motor3.stop()
+    motor4.forward(80)
+    time.sleep(3)
+    
+    # 모든 모터 정지
+    motor1.stop()
+    motor2.stop()
+    motor3.stop()
+    motor4.stop()
+    
 
 except KeyboardInterrupt:
     motor1.cleanup()
-    motor2.cleanup()    
+    motor2.cleanup()
+    motor3.cleanup()
+    motor4.cleanup()
     GPIO.cleanup()
     
 finally:
-
-    motor1. cleanup()
+    motor1.cleanup()
     motor2.cleanup()
+    motor3.cleanup()
+    motor4.cleanup()
     GPIO.cleanup()
