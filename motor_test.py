@@ -19,15 +19,14 @@ class MotorController:
 
     def forward(self, speed=40):
         self.set_speed(speed)
-        GPIO.output(self.in2, GPIO.LOW)
-        GPIO.output(self.in1, GPIO.HIGH)
+        GPIO.output(self.in2, GPIO.HIGH)
+        GPIO.output(self.in1, GPIO.LOW)   
 
         
     def backward(self, speed=40):
         self.set_speed(speed)
-        GPIO.output(self.in2, GPIO.HIGH)
-        GPIO.output(self.in1, GPIO.LOW)        
-
+        GPIO.output(self.in2, GPIO.LOW)
+        GPIO.output(self.in1, GPIO.HIGH)
     def stop(self):
         self.set_speed(0)
         GPIO.output(self.in1, GPIO.LOW)
