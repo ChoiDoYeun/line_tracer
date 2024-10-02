@@ -5,7 +5,7 @@ import math
 import RPi.GPIO as GPIO
 
 # PID 상수 (적절하게 조정해야 함)
-Kp = 4.00
+Kp = 5.00
 Ki = 0.00
 Kd = 0.00
 
