@@ -51,9 +51,11 @@ class MotorController:
         
 GPIO.setmode(GPIO.BCM)
 
-# 왼쪽 모터와 오른쪽 모터 설정
-motor1 = MotorController(18, 17, 27)  # 왼쪽 모터
-motor2 = MotorController(16, 13, 26)  # 오른쪽 모터
+# 모터 초기화
+motor1 = MotorController(18, 17, 27) # left front
+motor2 = MotorController(22, 23, 24) # right front
+motor3 = MotorController(9, 10, 11) # left back
+motor4 = MotorController(25, 8, 7) # right back
 
 # PID 제어 함수
 def pid_control(error, dt):
@@ -69,22 +71,23 @@ def pid_control(error, dt):
 
 # 모터 제어 함수 (보정 적용)
 def control_motors(left_speed, right_speed):
-    # 우측 모터 속도에 보정 적용 (1.1853배)
-    right_speed = right_speed * 1.1853
-
     # 속도 범위 제한 (리밋)
     left_speed = max(min(left_speed, 100), -100)
     right_speed = max(min(right_speed, 100), -100)
 
     if left_speed >= 0:
         motor1.forward(left_speed)
+        motor3.forward(left_speed)
     else:
         motor1.backward(-left_speed)
+        motor3.backward(-left_speed)
 
     if right_speed >= 0:
         motor2.forward(right_speed)
+        motor4.forward(right_speed)
     else:
         motor2.backward(-right_speed)
+        motor4.backward(-right_speed)
 
 # 이미지 처리 함수
 def process_image(frame):
