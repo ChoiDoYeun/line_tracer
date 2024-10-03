@@ -133,7 +133,7 @@ def main():
                 Kd = float(input("Kd 값을 입력하세요: "))
                 print("스페이스바를 누르면 시작합니다.")
                 while True:
-                    if cv2.waitKey(1) & 0xFF == ord(' '):
+                    if cv2.waitKey(1) & 0xFF == ord('a'):
                         running = True
                         break
 
@@ -159,7 +159,7 @@ def main():
             print(f"left : {left_motor_speed} , right : {right_motor_speed}")
             control_motors(left_motor_speed, right_motor_speed)
 
-            if cv2.waitKey(1) & 0xFF == ord(' '):
+            if cv2.waitKey(1) & 0xFF == ord('s'):
                 running = False
                 motor1.stop()
                 motor2.stop()
