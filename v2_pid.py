@@ -111,7 +111,7 @@ def process_image(frame):
     # 선의 중앙값 계산
     line_center_x, diff = None, None
     found = False
-    for y in range(240, 50, -5):  # y=240부터 y=120까지 5 단위로 올라감
+    for y in range(240, 119, -5):  # y=240부터 y=120까지 5 단위로 올라감
         x_positions = []
         if lines is not None:
             # 각 라인에서 해당 y 좌표에 대한 x 값을 찾음
@@ -132,7 +132,10 @@ def process_image(frame):
 
     # 라인이 감지되지 않았을 때 디버깅 출력
     if not found:
-        print("경고: 라인이 감지되지 않았습니다! 이전 속도를 유지합니다.")
+        print("경고: 라인이 감지되지 않았습니다!")
+        line_center_x = 211  # 중앙으로 설정
+        diff = 0
+
     return line_center_x, diff
 
 
