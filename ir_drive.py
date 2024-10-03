@@ -2,8 +2,8 @@ import RPi.GPIO as GPIO
 import time
 
 # GPIO 핀 번호 설정
-RIGHT_SENSOR_PIN = 17  # 우측 IR 센서 핀 번호
-FRONT_SENSOR_PIN = 27  # 전방 IR 센서 핀 번호
+RIGHT_SENSOR_PIN = 21  # 우측 IR 센서 GPIO 핀
+FRONT_SENSOR_PIN = 20  # 앞쪽 IR 센서 GPIO 핀
 
 # GPIO 모드 및 핀 설정
 GPIO.setmode(GPIO.BCM)
