@@ -111,7 +111,7 @@ def process_image(frame):
     # 선의 중앙값 계산
     line_center_x, diff = None, None
     found = False
-    for y in range(240, 119, -5):  # y=240부터 y=120까지 5 단위로 올라감
+    for y in range(240, 50, -5):  # y=240부터 y=120까지 5 단위로 올라감
         x_positions = []
         if lines is not None:
             # 각 라인에서 해당 y 좌표에 대한 x 값을 찾음
