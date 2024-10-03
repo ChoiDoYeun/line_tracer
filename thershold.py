@@ -5,9 +5,9 @@ import math
 import RPi.GPIO as GPIO
 
 # PID 상수 (적절하게 조정해야 함)
-Kp = 3.00
+Kp = 4.80
 Ki = 0.00
-Kd = 0.20
+Kd = 0.05
 
 # PID 제어 변수
 prev_error = 0.0
@@ -104,20 +104,24 @@ def process_image(frame):
     canny_edges = cv2.Canny(blurred, 50, 150)
 
     # Hough Line Transform 적용
-    lines = cv2.HoughLinesP(canny_edges, 1, np.pi / 180, threshold=50, minLineLength=10, maxLineGap=10)
+    lines = cv2.HoughLinesP(canny_edges, 1, np.pi / 180, threshold=20, minLineLength=5, maxLineGap=10)
 
     # 선의 중앙값 계산
     line_center_x, diff = None, None
     found = False
-    for y in range(240, 0, -1):  # y=240부터 y=0까지 1 단위로 내려감
+    for y in range(240, 50, -1):  # y=240부터 y=0까지 1 단위로 내려감
         x_positions = []
         if lines is not None:
             # 각 라인에서 해당 y 좌표에 대한 x 값을 찾음
             for line in lines:
                 x1, y1, x2, y2 = line[0]
                 if y1 <= y <= y2 or y2 <= y <= y1:
-                    x = int(x1 + (y - y1) * (x2 - x1) / (y2 - y1))
-                    x_positions.append(x)
+                    if y2 - y1 !=0:
+                        x = int(x1 + (y - y1) * (x2 - x1) / (y2 - y1))
+                        x_positions.append(x)
+                    else :
+                        x = int((x1+x2)/2)
+                        x_positions.append(x)
 
             # 두 선이 감지되었다면, 두 선 사이의 중앙값을 계산
             if len(x_positions) == 2:
@@ -148,7 +152,7 @@ def main():
         return
 
     prev_time = time.time()  # 이전 시간을 저장
-    detection_interval = 0.01  # 라인 검출 간격 (0.01초, 즉 100FPS 정도로 설정)
+    detection_interval = 0.0083  # 라인 검출 간격 (0.01초, 즉 100FPS 정도로 설정)
 
     try:
         while True:
@@ -174,6 +178,7 @@ def main():
                     continue
 
                 # PID 제어 값 계산
+                print(f"diff : {diff}")
                 if -90 <= diff <= 90:
                     pid_value = 0  # error가 -90에서 90 사이일 경우 PID 보정을 하지 않음
                 else:
