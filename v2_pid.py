@@ -12,6 +12,7 @@ Kd = 0.08
 # PID 제어 변수
 prev_error = 0.0
 integral = 0.0
+last_pid_value = 0  # 이전 PID 제어 값 저장
 
 # MotorController 클래스
 class MotorController:
@@ -59,7 +60,7 @@ motor4 = MotorController(25, 8, 7) # right back
 
 # PID 제어 함수
 def pid_control(error, dt):
-    global prev_error, integral
+    global prev_error, integral, last_pid_value
     
     dt = max(dt,0.01)
     print(f"dt : {dt}" )
@@ -69,7 +70,8 @@ def pid_control(error, dt):
     prev_error = error
 
     # Return the PID control result
-    return Kp * proportional + Ki * integral + Kd * derivative
+    last_pid_value = Kp * proportional + Ki * integral + Kd * derivative
+    return last_pid_value
 
 # 모터 제어 함수 (보정 적용)
 def control_motors(left_speed, right_speed):
@@ -93,6 +95,8 @@ def control_motors(left_speed, right_speed):
 
 # 이미지 처리 함수
 def process_image(frame):
+    global last_pid_value
+
     # 이미지를 HLS로 변환
     hls = cv2.cvtColor(frame, cv2.COLOR_BGR2HLS)
 
@@ -111,7 +115,7 @@ def process_image(frame):
     # 선의 중앙값 계산
     line_center_x, diff = None, None
     found = False
-    for y in range(240, 50, -5):  # y=240부터 y=120까지 5 단위로 올라감
+    for y in range(240, 50, -5):  # y=240부터 y=50까지 5 단위로 올라감
         x_positions = []
         if lines is not None:
             # 각 라인에서 해당 y 좌표에 대한 x 값을 찾음
@@ -132,18 +136,14 @@ def process_image(frame):
 
     # 라인이 감지되지 않았을 때 디버깅 출력
     if not found:
-        print("경고: 라인이 감지되지 않았습니다! 이전 속도를 유지합니다.")
-    # 이전의 pid_value, left_motor_speed, right_motor_speed 유지
+        print("경고: 라인이 감지되지 않았습니다! 이전 PID 값을 사용합니다.")
+        # 이전의 pid_value 유지
+        pid_value = last_pid_value
     else:
         # PID 제어 값 계산
         pid_value = pid_control(diff, dt)
         
-        # 속도 계산
-        base_speed = 50  # 기본 속도
-        left_motor_speed = base_speed + pid_value  # 왼쪽 속도 제어
-        right_motor_speed = base_speed - pid_value  # 오른쪽 속도 제어
-    return line_center_x, diff
-
+    return pid_value
 
 # 메인 제어 루프
 def main():
@@ -175,15 +175,7 @@ def main():
                 prev_time = current_time  # 이전 시간 업데이트
 
                 # 이미지 처리 및 중앙값 계산
-                line_center_x, diff = process_image(frame)
-
-                # NaN 검사 추가
-                if math.isnan(line_center_x) or math.isnan(diff):
-                    print("경고: 계산된 값이 NaN입니다.")
-                    continue
-
-                # PID 제어 값 계산
-                pid_value = pid_control(diff, dt)
+                pid_value = process_image(frame)
 
                 # 속도 계산
                 base_speed = 50  # 기본 속도
