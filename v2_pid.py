@@ -187,8 +187,12 @@ def main():
         # 종료 시 모든 모터 정지 및 GPIO 정리
         motor1.stop()
         motor2.stop()
+        motor3.stop()
+        motor4.stop()
         motor1.cleanup()
         motor2.cleanup()
+        motor3.cleanup()
+        motor4.cleanup()
 
     # 카메라 해제
     cap.release()
