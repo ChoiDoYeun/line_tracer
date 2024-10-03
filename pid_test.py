@@ -124,48 +124,52 @@ def main():
         return
 
     running = False
+    print("스페이스바를 눌러 시작하세요.")
     try:
         while True:
-            if not running:
-                # PID 값 입력받기
-                Kp = float(input("Kp 값을 입력하세요: "))
-                Ki = float(input("Ki 값을 입력하세요: "))
-                Kd = float(input("Kd 값을 입력하세요: "))
-                print("스페이스바를 누르면 시작합니다.")
-                while True:
-                    if cv2.waitKey(1) & 0xFF == ord('a'):
-                        running = True
-                        break
+            # 스페이스바가 눌리면 동작 시작
+            if cv2.waitKey(1) & 0xFF == ord(' '):
+                running = not running
+                if running:
+                    # PID 값 입력받기
+                    Kp = float(input("Kp 값을 입력하세요: "))
+                    Ki = float(input("Ki 값을 입력하세요: "))
+                    Kd = float(input("Kd 값을 입력하세요: "))
+                    print("동작 시작")
 
-            ret, frame = cap.read()
-            if not ret:
-                print("프레임을 가져올 수 없습니다.")
+                else:
+                    print("동작 정지")
+                    motor1.stop()
+                    motor2.stop()
+                    motor3.stop()
+                    motor4.stop()
+
+            if running:
+                ret, frame = cap.read()
+                if not ret:
+                    print("프레임을 가져올 수 없습니다.")
+                    break
+
+                current_time = time.time()
+                line_center_x, diff = process_image(frame)
+
+                if math.isnan(line_center_x) or math.isnan(diff):
+                    print("경고: 계산된 값이 NaN입니다.")
+                    continue
+
+                dt = time.time() - current_time
+                pid_value = pid_control(diff, dt, Kp, Ki, Kd)
+
+                base_speed = 50
+                left_motor_speed = base_speed + pid_value
+                right_motor_speed = base_speed - pid_value
+
+                print(f"left : {left_motor_speed} , right : {right_motor_speed}")
+                control_motors(left_motor_speed, right_motor_speed)
+
+            if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
 
-            current_time = time.time()
-            line_center_x, diff = process_image(frame)
-
-            if math.isnan(line_center_x) or math.isnan(diff):
-                print("경고: 계산된 값이 NaN입니다.")
-                continue
-
-            dt = time.time() - current_time
-            pid_value = pid_control(diff, dt, Kp, Ki, Kd)
-
-            base_speed = 50
-            left_motor_speed = base_speed + pid_value
-            right_motor_speed = base_speed - pid_value
-
-            print(f"left : {left_motor_speed} , right : {right_motor_speed}")
-            control_motors(left_motor_speed, right_motor_speed)
-
-            if cv2.waitKey(1) & 0xFF == ord('s'):
-                running = False
-                motor1.stop()
-                motor2.stop()
-                motor3.stop()
-                motor4.stop()
-                print("정지되었습니다. 새로운 PID 값을 입력하세요.")
     finally:
         motor1.cleanup()
         motor2.cleanup()
