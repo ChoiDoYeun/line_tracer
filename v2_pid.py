@@ -134,6 +134,7 @@ def process_image(frame):
     if not found:
         line_center_x = 211  # 중앙으로 설정
         diff = 0
+        print("no detect")
 
     return line_center_x, diff
 
