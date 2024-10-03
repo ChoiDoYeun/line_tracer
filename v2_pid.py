@@ -171,7 +171,7 @@ def main():
             pid_value = pid_control(diff, dt)
 
             # 속도 계산
-            base_speed = 70  # 기본 속도
+            base_speed = 50  # 기본 속도
             left_motor_speed = base_speed - pid_value  # 왼쪽 속도 제어
             right_motor_speed = base_speed + pid_value  # 오른쪽 속도 제어
 
