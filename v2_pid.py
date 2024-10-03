@@ -149,7 +149,7 @@ def main():
         return
 
     prev_time = time.time()  # 이전 시간을 저장
-    detection_interval = 0.05  # 라인 검출 간격 (0.05초, 즉 20FPS 정도로 설정)
+    detection_interval = 0.01  # 라인 검출 간격 (0.05초, 즉 20FPS 정도로 설정)
 
     try:
         while True:
