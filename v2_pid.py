@@ -130,14 +130,12 @@ def process_image(frame):
                 found = True
                 break  # 선을 찾으면 반복 종료
 
-    # 라인이 감지되지 않았을 때 디버깅 출력
+    # 라인이 감지되지 않았을 때 기본값 설정
     if not found:
-        print("경고: 라인이 감지되지 않았습니다!")
         line_center_x = 211  # 중앙으로 설정
         diff = 0
 
     return line_center_x, diff
-
 
 # 메인 제어 루프
 def main():
