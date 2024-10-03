@@ -5,9 +5,9 @@ import math
 import RPi.GPIO as GPIO
 
 # PID 상수 (적절하게 조정해야 함)
-Kp = 4.00
+Kp = 3.00
 Ki = 0.00
-Kd = 0.06
+Kd = 0.08
 
 # PID 제어 변수
 prev_error = 0.0
@@ -60,7 +60,9 @@ motor4 = MotorController(25, 8, 7) # right back
 # PID 제어 함수
 def pid_control(error, dt):
     global prev_error, integral
-
+    
+    dt = max(dt,0.01)
+    print(f"dt : {dt}" )
     proportional = error
     integral += error * dt
     derivative = (error - prev_error) / dt if dt > 0 else 0  # Prevent division by zero
