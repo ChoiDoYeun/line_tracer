@@ -132,7 +132,7 @@ def process_image(frame):
 
     # 라인이 감지되지 않았을 때 디버깅 출력
     if not found:
-    print("경고: 라인이 감지되지 않았습니다! 이전 속도를 유지합니다.")
+        print("경고: 라인이 감지되지 않았습니다! 이전 속도를 유지합니다.")
     # 이전의 pid_value, left_motor_speed, right_motor_speed 유지
     else:
         # PID 제어 값 계산
