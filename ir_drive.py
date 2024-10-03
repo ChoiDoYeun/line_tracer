@@ -66,10 +66,10 @@ try:
             print("우측에 벽이 감지됨: 직진")
         else:
             # 우측에 벽이 없으면 우회전
-            motor1.forward(30)  # 좌측 바퀴는 그대로
-            motor2.backward(30)  # 우측 바퀴는 후진하여 우회전
-            motor3.forward(30)
-            motor4.backward(30)
+            motor1.forward(50)  # 좌측 바퀴는 그대로
+            motor2.backward(50)  # 우측 바퀴는 후진하여 우회전
+            motor3.forward(50)
+            motor4.backward(50)
             print("우측에 벽이 없음: 우회전")
 
 except KeyboardInterrupt:
