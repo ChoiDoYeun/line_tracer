@@ -62,7 +62,7 @@ motor4 = MotorController(25, 8, 7) # right back
 def pid_control(error, dt):
     global prev_error, integral, last_pid_value
     
-    dt = max(dt,0.01)
+    dt = max(dt, 0.01)
     print(f"dt : {dt}" )
     proportional = error
     integral += error * dt
@@ -94,7 +94,7 @@ def control_motors(left_speed, right_speed):
         motor4.backward(-right_speed)
 
 # 이미지 처리 함수
-def process_image(frame):
+def process_image(frame, dt):
     global last_pid_value
 
     # 이미지를 HLS로 변환
@@ -175,7 +175,7 @@ def main():
                 prev_time = current_time  # 이전 시간 업데이트
 
                 # 이미지 처리 및 중앙값 계산
-                pid_value = process_image(frame)
+                pid_value = process_image(frame, dt)
 
                 # 속도 계산
                 base_speed = 50  # 기본 속도
