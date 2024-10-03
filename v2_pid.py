@@ -148,6 +148,9 @@ def main():
         print("카메라를 열 수 없습니다.")
         return
 
+    prev_time = time.time()  # 이전 시간을 저장
+    detection_interval = 0.05  # 라인 검출 간격 (0.05초, 즉 20FPS 정도로 설정)
+
     try:
         while True:
             ret, frame = cap.read()
@@ -157,34 +160,37 @@ def main():
 
             # 현재 시간 계산
             current_time = time.time()
+            dt = current_time - prev_time
 
-            # 이미지 처리 및 중앙값 계산
-            line_center_x, diff = process_image(frame)
+            # 라인 검출은 일정 주기마다만 실행
+            if dt >= detection_interval:
+                prev_time = current_time  # 이전 시간 업데이트
 
-            # NaN 검사 추가
-            if math.isnan(line_center_x) or math.isnan(diff):
-                print("경고: 계산된 값이 NaN입니다.")
-                continue
+                # 이미지 처리 및 중앙값 계산
+                line_center_x, diff = process_image(frame)
 
-            # PID 제어를 위한 시간 간격 계산
-            dt = time.time() - current_time
+                # NaN 검사 추가
+                if math.isnan(line_center_x) or math.isnan(diff):
+                    print("경고: 계산된 값이 NaN입니다.")
+                    continue
 
-            # PID 제어 값 계산
-            pid_value = pid_control(diff, dt)
+                # PID 제어 값 계산
+                pid_value = pid_control(diff, dt)
 
-            # 속도 계산
-            base_speed = 50  # 기본 속도
-            left_motor_speed = base_speed + pid_value  # 왼쪽 속도 제어
-            right_motor_speed = base_speed - pid_value  # 오른쪽 속도 제어
+                # 속도 계산
+                base_speed = 50  # 기본 속도
+                left_motor_speed = base_speed + pid_value  # 왼쪽 속도 제어
+                right_motor_speed = base_speed - pid_value  # 오른쪽 속도 제어
 
-            print(f"left : {left_motor_speed} , right : {right_motor_speed}")
+                print(f"left : {left_motor_speed} , right : {right_motor_speed}")
 
-            # 모터 제어 함수 호출
-            control_motors(left_motor_speed, right_motor_speed)
+                # 모터 제어 함수 호출
+                control_motors(left_motor_speed, right_motor_speed)
 
             # 'q' 키를 누르면 종료
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
+
     finally:
         # 종료 시 모든 모터 정지 및 GPIO 정리
         motor1.stop()
