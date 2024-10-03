@@ -48,14 +48,14 @@ try:
     motor2.backward(100)
     motor3.forward(100)
     motor4.backward(100)
-    time.sleep(2)
-    
+    time.sleep(2.2)
+
     # 모든 모터 정지
     motor1.stop()
     motor2.stop()
     motor3.stop()
     motor4.stop()
-    
+    time.sleep(1)
 
 except KeyboardInterrupt:
     motor1.cleanup()
