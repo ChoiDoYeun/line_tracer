@@ -7,7 +7,7 @@ import RPi.GPIO as GPIO
 # PID 상수 (적절하게 조정해야 함)
 Kp = 3.00
 Ki = 0.00
-Kd = 0.08
+Kd = 0.20
 
 # PID 제어 변수
 prev_error = 0.0
@@ -61,12 +61,13 @@ motor4 = MotorController(25, 8, 7) # right back
 def pid_control(error, dt):
     global prev_error, integral
     
-    dt = max(dt,0.01)
+    #dt = max(dt,0.03)
     print(f"dt : {dt}" )
     proportional = error
     integral += error * dt
     derivative = (error - prev_error) / dt if dt > 0 else 0  # Prevent division by zero
     prev_error = error
+    print(f" error : {error}")
 
     # Return the PID control result
     return Kp * proportional + Ki * integral + Kd * derivative
@@ -111,7 +112,7 @@ def process_image(frame):
     # 선의 중앙값 계산
     line_center_x, diff = None, None
     found = False
-    for y in range(240, 119, -5):  # y=240부터 y=120까지 5 단위로 올라감
+    for y in range(240, 50, -5):  # y=240부터 y=120까지 5 단위로 올라감
         x_positions = []
         if lines is not None:
             # 각 라인에서 해당 y 좌표에 대한 x 값을 찾음
@@ -150,7 +151,7 @@ def main():
         return
 
     prev_time = time.time()  # 이전 시간을 저장
-    detection_interval = 0.03  # 라인 검출 간격 (0.05초, 즉 20FPS 정도로 설정)
+    detection_interval = 0.01  # 라인 검출 간격 (0.05초, 즉 20FPS 정도로 설정)
 
     try:
         while True:
