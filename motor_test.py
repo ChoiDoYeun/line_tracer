@@ -45,10 +45,9 @@ motor4 = MotorController(25, 8, 7)
 
 try:
     motor1.forward(80)
-    motor2.forward(80)
+    motor2.backward(80)
     motor3.forward(80)
-    motor4.forward(80)
-    print("모터1")
+    motor4.backward(80)
     time.sleep(2)
     
     # 모든 모터 정지
