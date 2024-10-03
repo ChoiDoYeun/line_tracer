@@ -132,10 +132,16 @@ def process_image(frame):
 
     # 라인이 감지되지 않았을 때 디버깅 출력
     if not found:
-        print("경고: 라인이 감지되지 않았습니다!")
-        line_center_x = 211  # 중앙으로 설정
-        diff = 0
-
+    print("경고: 라인이 감지되지 않았습니다! 이전 속도를 유지합니다.")
+    # 이전의 pid_value, left_motor_speed, right_motor_speed 유지
+    else:
+        # PID 제어 값 계산
+        pid_value = pid_control(diff, dt)
+        
+        # 속도 계산
+        base_speed = 50  # 기본 속도
+        left_motor_speed = base_speed + pid_value  # 왼쪽 속도 제어
+        right_motor_speed = base_speed - pid_value  # 오른쪽 속도 제어
     return line_center_x, diff
 
 
