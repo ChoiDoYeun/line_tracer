@@ -25,6 +25,17 @@ try:
     # 0도, 90도, 180도로 이동
     set_angle(90)
     print("90도")
+    time.sleep(3)
+
+
+    set_angle(0)
+    print("0도")
+    time.sleep(3)
+
+
+    set_angle(180)
+    print("180도")
+    time.sleep(3)
 
 except KeyboardInterrupt:
     pwm.stop()
