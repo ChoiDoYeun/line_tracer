@@ -5,9 +5,9 @@ import math
 import RPi.GPIO as GPIO
 
 # PID 상수 (적절하게 조정해야 함)
-Kp = 2.00
+Kp = 1.10
 Ki = 0.00
-Kd = 0.00
+Kd = 0.13
 
 # PID 제어 변수
 prev_error = 0.0
@@ -176,13 +176,13 @@ def main():
 
             # PID 제어 값 계산
             print(f"diff : {diff}")
-            if -50 <= diff <= 50:
-                pid_value = 0  # error가 -90에서 90 사이일 경우 PID 보정을 하지 않음
+            if -30 <= diff <= 30:
+                pid_value = 0 
             else:
                 pid_value = pid_control(diff, dt)  # error가 범위를 벗어나면 PID 보정 적용
 
             # 속도 계산
-            base_speed = 50  # 기본 속도
+            base_speed = 100  # 기본 속도
             left_motor_speed = base_speed + pid_value  # 왼쪽 속도 제어
             right_motor_speed = base_speed - pid_value  # 오른쪽 속도 제어
 
