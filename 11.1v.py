@@ -4,8 +4,8 @@ import time
 import math
 import RPi.GPIO as GPIO
 
-# PID 상수 (적절하게 조정해야 함)
-Kp = 1.10
+# PID 상수
+Kp = 5.00
 Ki = 0.00
 Kd = 0.13
 
@@ -26,7 +26,6 @@ class MotorController:
         self.pwm.start(0)
 
     def set_speed(self, speed):
-        # 속도를 -100에서 100 사이로 제한
         speed = max(min(speed, 100), -100)
         self.pwm.ChangeDutyCycle(abs(speed))
 
@@ -48,14 +47,14 @@ class MotorController:
     def cleanup(self):
         self.pwm.stop()
         GPIO.cleanup([self.en, self.in1, self.in2])
-        
+
 GPIO.setmode(GPIO.BCM)
 
 # 모터 초기화
-motor1 = MotorController(18, 17, 27) # left front
-motor2 = MotorController(22, 23, 24) # right front
-motor3 = MotorController(9, 10, 11) # left back
-motor4 = MotorController(25, 8, 7) # right back
+motor1 = MotorController(18, 17, 27)  # left front
+motor2 = MotorController(22, 23, 24)  # right front
+motor3 = MotorController(9, 10, 11)   # left back
+motor4 = MotorController(25, 8, 7)    # right back
 
 # PID 제어 함수
 def pid_control(error, dt):
@@ -63,15 +62,13 @@ def pid_control(error, dt):
     
     proportional = error
     integral += error * dt
-    derivative = (error - prev_error) / dt if dt > 0 else 0  # Prevent division by zero
+    derivative = (error - prev_error) / dt if dt > 0 else 0
     prev_error = error
 
-    # Return the PID control result
     return Kp * proportional + Ki * integral + Kd * derivative
 
-# 모터 제어 함수 (보정 적용)
+# 모터 제어 함수
 def control_motors(left_speed, right_speed):
-    # 속도 범위 제한 (리밋)
     left_speed = max(min(left_speed, 100), -100)
     right_speed = max(min(right_speed, 100), -100)
 
@@ -91,59 +88,45 @@ def control_motors(left_speed, right_speed):
 
 # 이미지 처리 함수
 def process_image(frame):
-    # 이미지를 HLS로 변환하고 S 채널 추출
     hls = cv2.cvtColor(frame, cv2.COLOR_BGR2HLS)
     s_channel = hls[:, :, 2]
-
-    # Gaussian 블러 적용
     blurred = cv2.GaussianBlur(s_channel, (5, 5), 0)
-
-    # Canny 에지 감지 적용
     canny_edges = cv2.Canny(blurred, 50, 150)
-
-    # Hough Line Transform 적용
     lines = cv2.HoughLinesP(canny_edges, 1, np.pi / 180, threshold=20, minLineLength=5, maxLineGap=10)
 
-    # 선의 중앙값 계산
     line_center_x, diff = None, None
     found = False
 
     if lines is not None:
-        # 모든 선분의 중간 x 좌표를 리스트로 저장
         x_positions = []
         for line in lines:
             x1, y1, x2, y2 = line[0]
             x_mid = (x1 + x2) // 2
             x_positions.append(x_mid)
 
-        # x 좌표들을 정렬하여 중앙값을 계산
         x_positions.sort()
         num_positions = len(x_positions)
 
         if num_positions >= 2:
-            # 가장 왼쪽과 오른쪽의 x 좌표를 사용하여 선의 중앙을 계산
             left_x = x_positions[0]
             right_x = x_positions[-1]
             line_center_x = (left_x + right_x) // 2
-            diff = line_center_x - 211  # 기준점 211
-
+            diff = line_center_x - 211
             found = True
         else:
-            # 검출된 선분이 하나인 경우 해당 선분의 중간 x 좌표를 사용
             line_center_x = x_positions[0]
             diff = line_center_x - 211
             found = True
 
-    # 라인이 감지되지 않았을 때 기본값 설정
     if not found:
-        line_center_x = 211  # 중앙으로 설정
+        line_center_x = 211
         diff = 0
         print("선을 감지하지 못했습니다.")
 
     return line_center_x, diff
+
 # 메인 제어 루프
 def main():
-    # 카메라 설정
     cap = cv2.VideoCapture(0, cv2.CAP_V4L2)
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, 424)
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 240)
@@ -152,7 +135,7 @@ def main():
         print("카메라를 열 수 없습니다.")
         return
 
-    prev_time = time.time()  # 이전 시간을 저장
+    prev_time = time.time()
 
     try:
         while True:
@@ -161,44 +144,37 @@ def main():
                 print("프레임을 가져올 수 없습니다.")
                 break
 
-            # 현재 시간 계산
             current_time = time.time()
             dt = current_time - prev_time
-            prev_time = current_time  # 이전 시간 업데이트
+            prev_time = current_time
 
-            # 이미지 처리 및 중앙값 계산
             line_center_x, diff = process_image(frame)
 
-            # NaN 검사 추가
             if math.isnan(line_center_x) or math.isnan(diff):
                 print("경고: 계산된 값이 NaN입니다.")
                 continue
 
-            # PID 제어 값 계산
-            print(f"diff : {diff}")
+            # 임계값 내에서는 base_speed = 50, 임계값을 벗어나면 base_speed = 0
             if -30 <= diff <= 30:
-                pid_value = 0 
+                base_speed = 50  # 기준값 내에서 이동 속도 유지
+                pid_value = 0  # 보정값을 0으로 설정
             else:
-                pid_value = pid_control(diff, dt)  # error가 범위를 벗어나면 PID 보정 적용
-            
-            pid_value = max(min(pid_value, 80), -80)
-            print(pid_value)
+                base_speed = 0  # 임계 구간을 벗어나면 이동 정지
+                pid_value = pid_control(diff, dt)
+
             # 속도 계산
-            base_speed = 30  # 기본 속도
-            left_motor_speed = base_speed + pid_value  # 왼쪽 속도 제어
-            right_motor_speed = base_speed - pid_value  # 오른쪽 속도 제어
+            left_motor_speed = base_speed + pid_value
+            right_motor_speed = base_speed - pid_value
 
             print(f"left : {left_motor_speed} , right : {right_motor_speed}")
 
             # 모터 제어 함수 호출
             control_motors(left_motor_speed, right_motor_speed)
 
-            # 'q' 키를 누르면 종료
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
 
     finally:
-        # 종료 시 모든 모터 정지 및 GPIO 정리
         motor1.stop()
         motor2.stop()
         motor3.stop()
@@ -208,12 +184,10 @@ def main():
         motor3.cleanup()
         motor4.cleanup()
 
-    # 카메라 해제
     cap.release()
     cv2.destroyAllWindows()
 
 # 프로그램 실행
 if __name__ == "__main__":
-    # GPIO 모드 설정
     GPIO.setmode(GPIO.BCM)
     main()
