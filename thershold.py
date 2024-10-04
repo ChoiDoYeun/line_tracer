@@ -5,7 +5,7 @@ import math
 import RPi.GPIO as GPIO
 
 # PID 상수 (적절하게 조정해야 함)
-Kp = 4.00
+Kp = 4.80
 Ki = 0.00
 Kd = 0.05
 
@@ -30,23 +30,15 @@ class MotorController:
         speed = max(min(speed, 100), -100)
         self.pwm.ChangeDutyCycle(abs(speed))
 
-    # Modify the forward method
     def forward(self, speed=40):
-        if speed == 0:
-            self.stop()
-        else:
-            self.set_speed(speed)
-            GPIO.output(self.in1, GPIO.HIGH)
-            GPIO.output(self.in2, GPIO.LOW)
-    
-    # Modify the backward method
+        self.set_speed(speed)
+        GPIO.output(self.in1, GPIO.HIGH)
+        GPIO.output(self.in2, GPIO.LOW)
+
     def backward(self, speed=40):
-        if speed == 0:
-            self.stop()
-        else:
-            self.set_speed(speed)
-            GPIO.output(self.in1, GPIO.LOW)
-            GPIO.output(self.in2, GPIO.HIGH)
+        self.set_speed(speed)
+        GPIO.output(self.in1, GPIO.LOW)
+        GPIO.output(self.in2, GPIO.HIGH)
 
     def stop(self):
         self.set_speed(0)
@@ -71,7 +63,7 @@ def pid_control(error, dt):
     
     proportional = error
     integral += error * dt
-    derivative = (error - prev_error) / dt if dt > 0 else 0
+    derivative = (error - prev_error) / dt if dt > 0 else 0  # Prevent division by zero
     prev_error = error
 
     # Return the PID control result
@@ -194,11 +186,10 @@ def main():
 
                 # 속도 계산
                 base_speed = 50  # 기본 속도
-                
                 left_motor_speed = base_speed + pid_value  # 왼쪽 속도 제어
                 right_motor_speed = base_speed - pid_value  # 오른쪽 속도 제어
+
                 print(f"left : {left_motor_speed} , right : {right_motor_speed}")
-                print(pid_value)
 
                 # 모터 제어 함수 호출
                 control_motors(left_motor_speed, right_motor_speed)
