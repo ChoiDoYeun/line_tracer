@@ -120,10 +120,12 @@ def process_image(frame):
                 break
 
     if not found:
+        print("no detect - 모터 정지 후 기본 속도 설정")
         line_center_x = 211
         diff = 0
         print("no detect")
-
+    else:
+        print(f"line detected - PID 적용 중: diff = {diff}")
     return line_center_x, diff
 
 # 메인 루프
