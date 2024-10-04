@@ -1,22 +1,26 @@
-import smbus
+import serial
 import time
 
-# I2C 버스 번호 및 센서 주소 설정
-bus = smbus.SMBus(21)  # /dev/i2c-20 버스 사용
-address = 0x10  # 인식된 TF Luna 센서 주소
+# 시리얼 포트 설정 (라즈베리파이의 기본 UART 포트는 /dev/serial0)
+ser = serial.Serial('/dev/serial0', baudrate=115200, timeout=1)
 
 def read_distance():
-    try:
-        # 거리 데이터를 읽음 (센서에 따라 레지스터 주소가 다를 수 있음)
-        data = bus.read_i2c_block_data(address, 0x00, 2)
-        distance = data[0] + (data[1] << 8)
+    # 센서에서 데이터를 읽어들임
+    ser.write(b'\x42\x57\x02\x00\x00\x00\x01\x06')  # 데이터 요청 명령
+    time.sleep(0.1)  # 잠시 대기
+    response = ser.read(9)  # 응답 데이터 읽기 (9바이트)
+
+    if len(response) == 9:
+        # 거리 값 추출 (바이트 데이터에서 거리 정보 추출)
+        distance = response[2] + (response[3] << 8)
         return distance
-    except OSError as e:
-        print(f"Error reading from sensor: {e}")
+    else:
         return None
 
 while True:
     distance = read_distance()
     if distance:
         print(f"Distance: {distance} cm")
-    time.sleep(0.5)
+    else:
+        print("Error reading from sensor")
+    time.sleep(1)
