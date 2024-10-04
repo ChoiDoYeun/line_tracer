@@ -117,7 +117,7 @@ def process_image(frame):
     roi_edges = cv2.bitwise_and(edges, mask)
 
     # Hough Line Transform 적용
-    lines = cv2.HoughLinesP(roi_edges, 1, np.pi / 180, threshold=20, minLineLength=20, maxLineGap=300)
+    lines = cv2.HoughLinesP(roi_edges, 1, np.pi / 180, threshold=20, minLineLength=5, maxLineGap=300)
 
     # 선 분류 및 평균 계산
     left_fit = []
