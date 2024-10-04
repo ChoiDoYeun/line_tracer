@@ -179,7 +179,7 @@ def main():
 
                 # PID 제어 값 계산
                 print(f"diff : {diff}")
-                if -90 <= diff <= 90:
+                if -70 <= diff <= 70:
                     pid_value = 0  # error가 -90에서 90 사이일 경우 PID 보정을 하지 않음
                 else:
                     pid_value = pid_control(diff, dt)  # error가 범위를 벗어나면 PID 보정 적용
