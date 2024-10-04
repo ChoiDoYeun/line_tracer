@@ -75,7 +75,7 @@ def control_motors(left_speed, right_speed):
     left_speed = max(min(left_speed, 100), -100)
     right_speed = max(min(right_speed, 100), -100)
 
-    print(f"left : {left_motor_speed} , right : {right_motor_speed}")
+    print(f"left : {left_speed} , right : {right_speed}")
 
     if left_speed >= 0:
         motor1.forward(left_speed)
