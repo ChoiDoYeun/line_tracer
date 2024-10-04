@@ -27,7 +27,7 @@ ser = serial.Serial('/dev/serial0', baudrate=115200, timeout=1)
 
 def read_distance():
     # 센서에서 데이터를 읽어들임
-    time.sleep(0.01)
+    time.sleep(0.001)
     ser.write(b'\x42\x57\x02\x00\x00\x00\x01\x06')  # 데이터 요청 명령
     response = ser.read(9)  # 응답 데이터 읽기 (9바이트)
 
@@ -42,7 +42,7 @@ try:
     # 90도 (중립)
     set_angle(90)
     print("중립 (90도)에서 거리 측정 중...")
-    time.sleep(1)  # 모터가 안정될 시간을 줌
+    time.sleep(0.01)  # 모터가 안정될 시간을 줌
     distance = read_distance()
     if distance:
         print(f"중립 위치 거리: {distance} cm")
@@ -52,7 +52,7 @@ try:
     # 0도 (우측)
     set_angle(0)
     print("우측 (0도)에서 거리 측정 중...")
-    time.sleep(1)
+    time.sleep(0.01)
     distance = read_distance()
     if distance:
         print(f"우측 위치 거리: {distance} cm")
@@ -62,7 +62,7 @@ try:
     # 180도 (좌측)
     set_angle(180)
     print("좌측 (180도)에서 거리 측정 중...")
-    time.sleep(1)
+    time.sleep(0.01)
     distance = read_distance()
     if distance:
         print(f"좌측 위치 거리: {distance} cm")
