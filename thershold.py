@@ -31,15 +31,23 @@ class MotorController:
         print(f"Setting motor speed to {speed}")  # 디버깅 출력을 추가
         self.pwm.ChangeDutyCycle(abs(speed))
 
+    # Modify the forward method
     def forward(self, speed=40):
-        self.set_speed(speed)
-        GPIO.output(self.in1, GPIO.HIGH)
-        GPIO.output(self.in2, GPIO.LOW)
-
+        if speed == 0:
+            self.stop()
+        else:
+            self.set_speed(speed)
+            GPIO.output(self.in1, GPIO.HIGH)
+            GPIO.output(self.in2, GPIO.LOW)
+    
+    # Modify the backward method
     def backward(self, speed=40):
-        self.set_speed(speed)
-        GPIO.output(self.in1, GPIO.LOW)
-        GPIO.output(self.in2, GPIO.HIGH)
+        if speed == 0:
+            self.stop()
+        else:
+            self.set_speed(speed)
+            GPIO.output(self.in1, GPIO.LOW)
+            GPIO.output(self.in2, GPIO.HIGH)
 
     def stop(self):
         self.set_speed(0)
@@ -64,7 +72,7 @@ def pid_control(error, dt):
     
     proportional = error
     integral += error * dt
-    derivative = (error - prev_error) / dt if dt > 0 else 0  # Prevent division by zero
+    derivative = (error - prev_error) / dt if dt > 0 else 0
     prev_error = error
 
     # Return the PID control result
