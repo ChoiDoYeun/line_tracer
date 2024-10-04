@@ -156,7 +156,7 @@ def main():
 
             # 임계값 내에서는 base_speed = 50, 임계값을 벗어나면 base_speed = 0
             if -60 <= diff <= 60:
-                base_speed = 50  # 기준값 내에서 이동 속도 유지
+                base_speed = 100  # 기준값 내에서 이동 속도 유지
                 pid_value = 0  # 보정값을 0으로 설정
             else:
                 base_speed = 0  # 임계 구간을 벗어나면 이동 정지
