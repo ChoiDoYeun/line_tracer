@@ -159,7 +159,7 @@ def main():
 
                 pid_value = pid_control(diff, dt)
 
-                base_speed = 50
+                base_speed = 25
                 if diff == 0:
                     left_motor_speed = base_speed
                     right_motor_speed = base_speed
