@@ -27,15 +27,16 @@ def set_angle(angle):
 
 def read_distance():
     """센서에서 거리 데이터를 읽어옴"""
-    time.sleep(0.01)
+    time.sleep(0.1)  # 데이터 요청 전 잠시 대기
     ser.write(b'\x42\x57\x02\x00\x00\x00\x01\x06')  # 데이터 요청 명령
     response = ser.read(9)  # 응답 데이터 읽기 (9바이트)
     
-    if len(response) == 9:
-        # 거리 값 추출 (바이트 데이터에서 거리 정보 추출)
+    if len(response) == 9 and response[0] == 0x59 and response[1] == 0x59:
+        # 시작 바이트가 올바른지 확인 (응답의 시작 바이트가 0x59로 시작)
         distance = response[2] + (response[3] << 8)
         return distance
     else:
+        print("올바른 응답을 받지 못했습니다.")
         return None
 
 try:
