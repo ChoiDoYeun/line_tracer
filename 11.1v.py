@@ -5,9 +5,9 @@ import math
 import RPi.GPIO as GPIO
 
 # PID 상수
-Kp = 5.00
+Kp = 0.22
 Ki = 0.00
-Kd = 0.13
+Kd = 0.03
 
 # PID 제어 변수
 prev_error = 0.0
@@ -26,7 +26,7 @@ class MotorController:
         self.pwm.start(0)
 
     def set_speed(self, speed):
-        speed = max(min(speed, 100), -100)
+        speed = max(min(speed, 60), -60)
         self.pwm.ChangeDutyCycle(abs(speed))
 
     def forward(self, speed=40):
@@ -155,7 +155,7 @@ def main():
                 continue
 
             # 임계값 내에서는 base_speed = 50, 임계값을 벗어나면 base_speed = 0
-            if -30 <= diff <= 30:
+            if -60 <= diff <= 60:
                 base_speed = 50  # 기준값 내에서 이동 속도 유지
                 pid_value = 0  # 보정값을 0으로 설정
             else:
