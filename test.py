@@ -99,70 +99,48 @@ def process_image(frame):
     blurred = cv2.GaussianBlur(s_channel, (5, 5), 0)
 
     # Canny 에지 감지 적용
-    edges = cv2.Canny(blurred, 50, 150)
-
-    # 관심 영역(ROI) 설정
-    height, width = edges.shape
-    mask = np.zeros_like(edges)
-
-    # ROI 다각형 정의 (이미지의 하단 절반)
-    polygon = np.array([[
-        (0, height),
-        (0, height * 0.5),
-        (width, height * 0.5),
-        (width, height)
-    ]], np.int32)
-
-    cv2.fillPoly(mask, polygon, 255)
-    roi_edges = cv2.bitwise_and(edges, mask)
+    canny_edges = cv2.Canny(blurred, 50, 150)
 
     # Hough Line Transform 적용
-    lines = cv2.HoughLinesP(roi_edges, 1, np.pi / 180, threshold=20, minLineLength=5, maxLineGap=300)
+    lines = cv2.HoughLinesP(canny_edges, 1, np.pi / 180, threshold=20, minLineLength=5, maxLineGap=10)
 
-    # 선 분류 및 평균 계산
-    left_fit = []
-    right_fit = []
+    # 선의 중앙값 계산
+    line_center_x, diff = None, None
+    found = False
 
     if lines is not None:
+        # 모든 선분의 중간 x 좌표를 리스트로 저장
+        x_positions = []
         for line in lines:
             x1, y1, x2, y2 = line[0]
-            # 수직선은 제외
-            if x1 == x2:
-                continue
-            parameters = np.polyfit((x1, x2), (y1, y2), 1)
-            slope = parameters[0]
-            intercept = parameters[1]
-            # 기울기에 따라 좌우 선 분류
-            if slope < 0:
-                left_fit.append((slope, intercept))
-            else:
-                right_fit.append((slope, intercept))
+            x_mid = (x1 + x2) // 2
+            x_positions.append(x_mid)
 
-    # 평균 선 계산
-    left_line = make_coordinates(frame, np.average(left_fit, axis=0)) if left_fit else None
-    right_line = make_coordinates(frame, np.average(right_fit, axis=0)) if right_fit else None
+        # x 좌표들을 정렬하여 중앙값을 계산
+        x_positions.sort()
+        num_positions = len(x_positions)
 
-    # 중앙선 계산
-    if left_line is not None and right_line is not None:
-        left_x_bottom = left_line[0]
-        right_x_bottom = right_line[0]
-        line_center_x = (left_x_bottom + right_x_bottom) // 2
-        diff = line_center_x - (width // 2)
-    else:
-        line_center_x = width // 2
+        if num_positions >= 2:
+            # 가장 왼쪽과 오른쪽의 x 좌표를 사용하여 선의 중앙을 계산
+            left_x = x_positions[0]
+            right_x = x_positions[-1]
+            line_center_x = (left_x + right_x) // 2
+            diff = line_center_x - 211  # 기준점 211
+
+            found = True
+        else:
+            # 검출된 선분이 하나인 경우 해당 선분의 중간 x 좌표를 사용
+            line_center_x = x_positions[0]
+            diff = line_center_x - 211
+            found = True
+
+    # 라인이 감지되지 않았을 때 기본값 설정
+    if not found:
+        line_center_x = 211  # 중앙으로 설정
         diff = 0
-        print("선을 충분히 검출하지 못했습니다.")
+        print("선을 감지하지 못했습니다.")
 
     return line_center_x, diff
-
-def make_coordinates(frame, line_parameters):
-    slope, intercept = line_parameters
-    y1 = frame.shape[0]  # 이미지 하단
-    y2 = int(y1 * 0.6)   # 이미지의 60% 지점
-    x1 = int((y1 - intercept) / slope)
-    x2 = int((y2 - intercept) / slope)
-    return [x1, y1, x2, y2]
-
 # 메인 제어 루프
 def main():
     # 카메라 설정
