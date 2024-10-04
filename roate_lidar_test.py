@@ -18,26 +18,24 @@ pwm.start(0)
 
 def set_angle(angle):
     """서보모터의 각도를 설정"""
-    duty = 2 + (angle / 18)
-    GPIO.output(servo_pin, True)
+    duty = angle / 18 + 2
     pwm.ChangeDutyCycle(duty)
-    time.sleep(1)  # 각도 설정 후 잠시 대기
-    GPIO.output(servo_pin, False)
-    pwm.ChangeDutyCycle(0)
+    time.sleep(0.5)  # 각도 설정 후 잠시 대기
 
 def read_distance():
     """센서에서 거리 데이터를 읽어옴"""
-    time.sleep(0.1)  # 데이터 요청 전 잠시 대기
-    ser.write(b'\x42\x57\x02\x00\x00\x00\x01\x06')  # 데이터 요청 명령
-    response = ser.read(9)  # 응답 데이터 읽기 (9바이트)
-    
-    if len(response) == 9 and response[0] == 0x59 and response[1] == 0x59:
-        # 시작 바이트가 올바른지 확인 (응답의 시작 바이트가 0x59로 시작)
-        distance = response[2] + (response[3] << 8)
-        return distance
-    else:
-        print("올바른 응답을 받지 못했습니다.")
-        return None
+    ser.flushInput()  # 시리얼 버퍼 초기화
+    time.sleep(0.1)
+    count = ser.in_waiting  # 수신 버퍼에 있는 바이트 수
+    if count >= 9:
+        recv = ser.read(9)  # 9바이트 읽기
+        ser.reset_input_buffer()  # 입력 버퍼 초기화
+
+        # 데이터 검증 (시작 바이트 확인)
+        if recv[0] == 0x59 and recv[1] == 0x59:
+            distance = recv[2] + recv[3] * 256
+            return distance
+    return None
 
 try:
     # 우측(0도), 중립(90도), 좌측(180도) 각도로 이동하면서 거리 측정
@@ -47,19 +45,27 @@ try:
     for i in range(3):
         set_angle(angles[i])
         print(f"{positions[i]}로 회전")
-        time.sleep(1)  # 각도 조정 후 대기
+        time.sleep(1)  # 서보모터가 이동할 시간을 줌
 
-        distance = read_distance()
-        if distance:
-            print(f"{positions[i]} 거리: {distance} cm")
+        # 거리 데이터를 여러 번 읽어서 평균값 계산
+        distances = []
+        for _ in range(5):
+            distance = read_distance()
+            if distance:
+                distances.append(distance)
+            time.sleep(0.1)
+        
+        if distances:
+            avg_distance = sum(distances) / len(distances)
+            print(f"{positions[i]} 거리: {avg_distance:.2f} cm")
         else:
             print(f"{positions[i]}에서 센서 오류 발생")
-
-        time.sleep(2)  # 측정 후 대기
+        
+        time.sleep(1)  # 다음 위치로 이동하기 전 잠시 대기
 
 except KeyboardInterrupt:
     print("프로그램 종료")
-    
+
 finally:
     pwm.stop()
     GPIO.cleanup()
