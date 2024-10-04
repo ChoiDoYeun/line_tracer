@@ -28,6 +28,7 @@ class MotorController:
     def set_speed(self, speed):
         # 속도를 -100에서 100 사이로 제한
         speed = max(min(speed, 100), -100)
+        print(f"Setting motor speed to {speed}")  # 디버깅 출력을 추가
         self.pwm.ChangeDutyCycle(abs(speed))
 
     def forward(self, speed=40):
