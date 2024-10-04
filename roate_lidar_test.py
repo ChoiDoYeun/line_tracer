@@ -26,7 +26,7 @@ def read_distance():
     """센서에서 거리 데이터를 읽어옴"""
     ser.reset_input_buffer()  # 시리얼 버퍼 초기화
     ser.write(b'\x42\x57\x02\x00\x00\x00\x01\x06')  # 데이터 요청 명령
-    time.sleep(0.1)
+    time.sleep(0.2)
     response = ser.read(9)  # 응답 데이터 읽기 (9바이트)
     
     if len(response) == 9 and response[0] == 0x59 and response[1] == 0x59:
