@@ -26,7 +26,7 @@ class MotorController:
         self.pwm.start(0)
 
     def set_speed(self, speed):
-        speed = max(min(speed, 100), -100)
+        speed = max(min(speed, 80), -80)
         self.pwm.ChangeDutyCycle(abs(speed))
 
     def forward(self, speed=40):
@@ -70,8 +70,8 @@ def pid_control(error, dt):
 
 # 모터 제어 함수
 def control_motors(left_speed, right_speed):
-    left_speed = max(min(left_speed, 100), -100)
-    right_speed = max(min(right_speed, 100), -100)
+    left_speed = max(min(left_speed, 80), -80)
+    right_speed = max(min(right_speed, 80), -80)
 
     print(f"left: {left_speed}, right: {right_speed}")
 
