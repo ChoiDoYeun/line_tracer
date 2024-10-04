@@ -22,17 +22,9 @@ def set_angle(angle):
     pwm.ChangeDutyCycle(0)
 
 try:
-    while True:
-        # 0도, 90도, 180도로 이동
-        set_angle(0)
-        print("0도")
-        time.sleep(2)
-        set_angle(90)
-        print("90도")
-        time.sleep(2)
-        set_angle(180)
-        print("180도")
-        time.sleep(2)
+    # 0도, 90도, 180도로 이동
+    set_angle(90)
+    print("90도")
 
 except KeyboardInterrupt:
     pwm.stop()
