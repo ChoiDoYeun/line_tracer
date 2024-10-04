@@ -90,6 +90,7 @@ def control_motors(left_speed, right_speed):
         motor4.backward(-right_speed)
 
 # 이미지 처리 함수
+# 이미지 처리 함수
 def process_image(frame):
     # 이미지를 HLS로 변환
     hls = cv2.cvtColor(frame, cv2.COLOR_BGR2HLS)
@@ -97,14 +98,35 @@ def process_image(frame):
     # S 채널 추출
     s_channel = hls[:, :, 2]
 
+    # Adaptive Thresholding 적용
+    thresh = cv2.adaptiveThreshold(s_channel, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, 
+                                   cv2.THRESH_BINARY, 11, 2)
+
+    # Morphological Transformations 적용 (잡음 제거 및 선 명확화)
+    kernel = np.ones((5, 5), np.uint8)
+    closing = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, kernel)
+
     # Gaussian 블러 적용
-    blurred = cv2.GaussianBlur(s_channel, (5, 5), 0)
+    blurred = cv2.GaussianBlur(closing, (5, 5), 0)
 
     # Canny 에지 감지 적용
     canny_edges = cv2.Canny(blurred, 50, 150)
 
+    # 관심 영역 (ROI) 설정 - 이미지 하단부만 사용
+    height, width = canny_edges.shape
+    mask = np.zeros_like(canny_edges)
+    polygon = np.array([[
+        (0, height * 0.7),
+        (width, height * 0.7),
+        (width, height),
+        (0, height),
+    ]], np.int32)
+
+    cv2.fillPoly(mask, polygon, 255)
+    roi = cv2.bitwise_and(canny_edges, mask)
+
     # Hough Line Transform 적용
-    lines = cv2.HoughLinesP(canny_edges, 1, np.pi / 180, threshold=20, minLineLength=5, maxLineGap=10)
+    lines = cv2.HoughLinesP(roi, 1, np.pi / 180, threshold=20, minLineLength=10, maxLineGap=15)
 
     # 선의 중앙값 계산
     line_center_x, diff = None, None
