@@ -83,8 +83,6 @@ def control_motors(left_speed, right_speed):
     left_speed = max(min(left_speed, 100), -100)
     right_speed = max(min(right_speed, 100), -100)
 
-    print(f"left : {left_speed} , right : {right_speed}")
-
     if left_speed >= 0:
         motor1.forward(left_speed)
         motor3.forward(left_speed)
@@ -199,6 +197,7 @@ def main():
                 
                 left_motor_speed = base_speed + pid_value  # 왼쪽 속도 제어
                 right_motor_speed = base_speed - pid_value  # 오른쪽 속도 제어
+                print(f"left : {left_motor_speed} , right : {right_motor_speed}")
 
                 # 모터 제어 함수 호출
                 control_motors(left_motor_speed, right_motor_speed)
