@@ -72,8 +72,8 @@ def pid_control(error, dt):
 # 모터 제어 함수 (보정 적용)
 def control_motors(left_speed, right_speed):
     # 속도 범위 제한 (리밋)
-    left_speed = max(min(left_speed, 100), -100)
-    right_speed = max(min(right_speed, 100), -100)
+    left_speed = max(min(left_speed, 100), 0)
+    right_speed = max(min(right_speed, 100), 0)
 
     if left_speed >= 0:
         motor1.forward(left_speed)
