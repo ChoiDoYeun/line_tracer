@@ -55,7 +55,7 @@ class MotorController:
 
     def cleanup(self):
         self.pwm.stop()
-        GPIO.cleanup([self.en, self.in1, self.in2])
+        # GPIO.cleanup([self.en, self.in1, self.in2])
         
 GPIO.setmode(GPIO.BCM)
 
