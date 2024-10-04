@@ -196,14 +196,9 @@ def main():
 
                 # 속도 계산
                 base_speed = 50  # 기본 속도
-
-                # 라인이 감지되지 않았을 때도 기본 속도 유지 (diff == 0일 때)
-                if diff == 0:  
-                    left_motor_speed = base_speed  # 직진
-                    right_motor_speed = base_speed
-                else:
-                    left_motor_speed = base_speed + pid_value  # 왼쪽 속도 제어
-                    right_motor_speed = base_speed - pid_value  # 오른쪽 속도 제어
+                
+                left_motor_speed = base_speed + pid_value  # 왼쪽 속도 제어
+                right_motor_speed = base_speed - pid_value  # 오른쪽 속도 제어
 
                 # 모터 제어 함수 호출
                 control_motors(left_motor_speed, right_motor_speed)
