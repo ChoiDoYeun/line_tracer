@@ -18,7 +18,7 @@ def set_angle(angle):
     duty = 2 + (angle / 18)
     GPIO.output(servo_pin, True)
     pwm.ChangeDutyCycle(duty)
-    time.sleep(0.001)  # 서보 모터가 이동할 시간을 줌
+    time.sleep(0.1)  # 서보 모터가 이동할 시간을 줌
     GPIO.output(servo_pin, False)
     pwm.ChangeDutyCycle(0)
 
