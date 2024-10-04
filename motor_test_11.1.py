@@ -80,7 +80,7 @@ def random_motor_control():
             print(f"Left Speed: {left_speed}, Right Speed: {right_speed}")
 
             # 0.5초 대기
-            time.sleep(0.5)
+            time.sleep(1)
 
     except KeyboardInterrupt:
         # 사용자가 Ctrl+C를 눌러 중지할 때 모터 정지 및 GPIO 클린업
