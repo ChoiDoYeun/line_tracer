@@ -91,54 +91,77 @@ def control_motors(left_speed, right_speed):
 
 # 이미지 처리 함수
 def process_image(frame):
-    # 이미지를 HLS로 변환
+    # 이미지를 HLS로 변환하고 S 채널 추출
     hls = cv2.cvtColor(frame, cv2.COLOR_BGR2HLS)
-
-    # S 채널 추출
     s_channel = hls[:, :, 2]
 
     # Gaussian 블러 적용
     blurred = cv2.GaussianBlur(s_channel, (5, 5), 0)
 
     # Canny 에지 감지 적용
-    canny_edges = cv2.Canny(blurred, 50, 150)
+    edges = cv2.Canny(blurred, 50, 150)
+
+    # 관심 영역(ROI) 설정
+    height, width = edges.shape
+    mask = np.zeros_like(edges)
+
+    # ROI 다각형 정의 (이미지의 하단 절반)
+    polygon = np.array([[
+        (0, height),
+        (0, height * 0.5),
+        (width, height * 0.5),
+        (width, height)
+    ]], np.int32)
+
+    cv2.fillPoly(mask, polygon, 255)
+    roi_edges = cv2.bitwise_and(edges, mask)
 
     # Hough Line Transform 적용
-    lines = cv2.HoughLinesP(canny_edges, 1, np.pi / 180, threshold=20, minLineLength=5, maxLineGap=10)
+    lines = cv2.HoughLinesP(roi_edges, 1, np.pi / 180, threshold=50, minLineLength=20, maxLineGap=300)
 
-    # 선의 중앙값 계산
-    line_center_x, diff = None, None
-    found = False
-    for y in range(240, 50, -1):  # y=240부터 y=0까지 1 단위로 내려감
-        x_positions = []
-        if lines is not None:
-            # 각 라인에서 해당 y 좌표에 대한 x 값을 찾음
-            for line in lines:
-                x1, y1, x2, y2 = line[0]
-                if y1 <= y <= y2 or y2 <= y <= y1:
-                    if y2 - y1 != 0:
-                        x = int(x1 + (y - y1) * (x2 - x1) / (y2 - y1))
-                        x_positions.append(x)
-                    else:
-                        x = int((x1+x2)/2)
-                        x_positions.append(x)
+    # 선 분류 및 평균 계산
+    left_fit = []
+    right_fit = []
 
-            # 두 선이 감지되었다면, 두 선 사이의 중앙값을 계산
-            if len(x_positions) == 2:
-                left_x, right_x = sorted(x_positions)
-                line_center_x = (left_x + right_x) // 2
-                diff = line_center_x - 211  # 기준점 211
+    if lines is not None:
+        for line in lines:
+            x1, y1, x2, y2 = line[0]
+            # 수직선은 제외
+            if x1 == x2:
+                continue
+            parameters = np.polyfit((x1, x2), (y1, y2), 1)
+            slope = parameters[0]
+            intercept = parameters[1]
+            # 기울기에 따라 좌우 선 분류
+            if slope < 0:
+                left_fit.append((slope, intercept))
+            else:
+                right_fit.append((slope, intercept))
 
-                found = True
-                break  # 선을 찾으면 반복 종료
+    # 평균 선 계산
+    left_line = make_coordinates(frame, np.average(left_fit, axis=0)) if left_fit else None
+    right_line = make_coordinates(frame, np.average(right_fit, axis=0)) if right_fit else None
 
-    # 라인이 감지되지 않았을 때 기본값 설정
-    if not found:
-        line_center_x = 211  # 중앙으로 설정
+    # 중앙선 계산
+    if left_line is not None and right_line is not None:
+        left_x_bottom = left_line[0]
+        right_x_bottom = right_line[0]
+        line_center_x = (left_x_bottom + right_x_bottom) // 2
+        diff = line_center_x - (width // 2)
+    else:
+        line_center_x = width // 2
         diff = 0
-        print("no detect")
+        print("선을 충분히 검출하지 못했습니다.")
 
     return line_center_x, diff
+
+def make_coordinates(frame, line_parameters):
+    slope, intercept = line_parameters
+    y1 = frame.shape[0]  # 이미지 하단
+    y2 = int(y1 * 0.6)   # 이미지의 60% 지점
+    x1 = int((y1 - intercept) / slope)
+    x2 = int((y2 - intercept) / slope)
+    return [x1, y1, x2, y2]
 
 # 메인 제어 루프
 def main():
