@@ -2,7 +2,7 @@ import smbus
 import time
 
 # I2C 버스 번호 및 센서 주소 설정
-bus = smbus.SMBus(20)  # /dev/i2c-20 버스 사용
+bus = smbus.SMBus(21)  # /dev/i2c-20 버스 사용
 address = 0x10  # 인식된 TF Luna 센서 주소
 
 def read_distance():
