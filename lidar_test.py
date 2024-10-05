@@ -37,9 +37,18 @@ if __name__ == "__main__":
                 scan_time = scan.config.scan_time if scan.config.scan_time != 0 else 1.0
                 print(f"Scan received[{scan.stamp}]: {scan.points.size()} ranges at {1.0 / scan_time}Hz")
                 
-                # 각 포인트의 거리 출력
+                # 정면 방향 거리를 확인 (-0.1 ~ 0.1 라디안 범위를 정면으로 간주)
+                front_distances = []
                 for point in scan.points:
+                    if -0.1 <= point.angle <= 0.1:
+                        front_distances.append(point.range)
                     print(f"Angle: {point.angle:.2f} rad, Distance: {point.range:.2f} meters")
+
+                if front_distances:
+                    average_front_distance = sum(front_distances) / len(front_distances)
+                    print(f"Average front distance: {average_front_distance:.2f} meters")
+                else:
+                    print("No front distance data available.")
             else:
                 print("Failed to get Lidar Data.")
 
