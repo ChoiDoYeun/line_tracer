@@ -49,7 +49,7 @@ if __name__ == "__main__":
     laser.setlidaropt(ydlidar.LidarPropLidarType, ydlidar.TYPE_TOF)
     laser.setlidaropt(ydlidar.LidarPropDeviceType, ydlidar.YDLIDAR_TYPE_SERIAL)
     laser.setlidaropt(ydlidar.LidarPropScanFrequency, 5.0)
-    laser.setlidaropt(ydlidar.LidarPropSampleRate, 3000)
+    laser.setlidaropt(ydlidar.LidarPropSampleRate, 5000)
 
     # 단방향 통신 설정
     laser.setlidaropt(ydlidar.LidarPropSingleChannel, True)
