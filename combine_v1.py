@@ -146,7 +146,7 @@ def lidar_thread(laser):
                     if -5 <= degree_angle <= 5:
                         front_distance = min(front_distance, point.range)
             with obstacle_lock:
-                obstacle_detected = front_distance <= 0.6  # 60cm 이내
+                obstacle_detected = front_distance <= 0.8  # 60cm 이내
         else:
             with obstacle_lock:
                 obstacle_detected = False
