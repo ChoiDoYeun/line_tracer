@@ -4,7 +4,7 @@ import serial
 
 # GPIO 핀 설정
 servo_pin = 4  # 서보모터를 연결할 GPIO 핀 번호
-ser = serial.Serial('/dev/serial0', baudrate=115200, timeout=0.1)
+ser = serial.Serial('/dev/serial0', baudrate=115200, timeout=0.001)
 
 # GPIO 모드 설정
 GPIO.setmode(GPIO.BCM)
@@ -92,7 +92,7 @@ def dynamic_right_turn():
             motor4.backward(30)
             
             right_distance = read_distance()  # 거리 다시 측정
-            time.sleep(0.1)
+            time.sleep(0.001)
         
         print("우측 벽이 충분히 멀어짐 - 우회전 완료")
     else:
@@ -114,7 +114,7 @@ def check_front_and_stop():
         motor2.stop()
         motor3.stop()
         motor4.stop()
-        time.sleep(1)
+        time.sleep(0.001)
         dynamic_right_turn()  # 우회전 시도
     else:
         print(f"전방 거리: {front_distance} cm - 전진")
@@ -127,7 +127,7 @@ def main():
     """메인 실행 함수"""
     while True:
         check_front_and_stop()
-        time.sleep(0.1)
+        time.sleep(0.001)
 
 if __name__ == "__main__":
     try:
