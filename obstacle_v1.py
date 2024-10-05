@@ -115,7 +115,7 @@ def main():
     """메인 실행 함수"""
     set_angle(90)  # 전방 각도로 설정
     check_front_and_stop()
-    time.sleep(0.05)  # 메인 루프 주기 설정
+    time.sleep(0.001)  # 메인 루프 주기 설정
 
 if __name__ == "__main__":
     try:
