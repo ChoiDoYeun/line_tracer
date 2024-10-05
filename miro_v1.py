@@ -127,7 +127,6 @@ def main():
     """메인 실행 함수"""
     while True:
         check_front_and_stop()
-        time.sleep(0.001)
 
 if __name__ == "__main__":
     try:
