@@ -158,7 +158,7 @@ def initialize_sensor():
 def check_front_and_stop():
     front_distance = latest_distance
 
-    if front_distance is not None and front_distance <= 50:
+    if front_distance is not None and front_distance <= 80:
         print(f"전방 거리: {front_distance} cm - 멈춤(장애물)")
         for motor in [motor1, motor2, motor3, motor4]:
             motor.stop()
