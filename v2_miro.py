@@ -46,33 +46,30 @@ class MotorController:
 def update_scan(scan_data, laser):
     r = laser.doProcessSimple(scan_data)
     if r:
-        front_distance = float('inf')  # 정면 거리
-        left_distance = float('inf')   # 좌측 거리
-        right_distance = float('inf')  # 우측 거리
+        # 섹터 설정
+        sector_size = 45  # 섹터 당 각도 (예: 45도)
+        num_sectors = int(360 / sector_size)
+        sectors = [float('inf')] * num_sectors  # 각 섹터의 최소 거리 초기화
 
         for point in scan_data.points:
-            degree_angle = math.degrees(point.angle)  # 각도를 도 단위로 변환
-            if 0.01 <= point.range <= 8.0:  # 유효한 거리 데이터(0.01m ~ 8m)
+            degree_angle = math.degrees(point.angle)
+            if degree_angle < 0:
+                degree_angle += 360  # 각도를 0~360도로 변환
 
-                # 정면 (0도)
-                if -1 <= degree_angle <= 1:  # 0도 근처
-                    front_distance = min(front_distance, point.range)
+            if 0.01 <= point.range <= 8.0:
+                # 해당 포인트가 속한 섹터 계산
+                sector_index = int(degree_angle / sector_size) % num_sectors
+                # 해당 섹터의 최소 거리 업데이트
+                sectors[sector_index] = min(sectors[sector_index], point.range)
 
-                # 우측 (90도)
-                if 89 <= degree_angle <= 91:  # 90도 근처 (우측)
-                    right_distance = min(right_distance, point.range)
+        # 섹터별 거리 정보 디버깅 출력
+        for i, dist in enumerate(sectors):
+            print(f"섹터 {i}: 거리 {dist * 100:.2f} cm")
 
-                # 좌측 (-90도)
-                if -91 <= degree_angle <= -89:  # -90도 근처 (좌측)
-                    left_distance = min(left_distance, point.range)
-
-        # 디버깅 정보 출력
-        print(f"정면 거리: {front_distance * 100:.2f} cm, 좌측 거리: {left_distance * 100:.2f} cm, 우측 거리: {right_distance * 100:.2f} cm")
-        
-        return front_distance, left_distance, right_distance
+        return sectors
     else:
-        print("Failed to get Lidar Data.")
-        return None, None, None
+        print("라이다 데이터 수집 실패.")
+        return None
 
 def dynamic_turn(left_motor, right_motor, left_speed, right_speed, direction):
     """모터 속도를 기반으로 동적 회전"""
@@ -117,64 +114,54 @@ if __name__ == "__main__":
     if ret:
         ret = laser.turnOn()
         scan_data = ydlidar.LaserScan()
+    # 좌측 및 우측 모터 그룹화
+    left_motors = [motor1, motor3]
+    right_motors = [motor2, motor4]
 
-        try:
-            while True:
-                # 거리 데이터 업데이트
-                front_dist, left_dist, right_dist = update_scan(scan_data, laser)
+    try:
+        while True:
+            sectors = update_scan(scan_data, laser)
 
-                if front_dist is None or left_dist is None or right_dist is None:
-                    continue
+            if sectors is None:
+                continue
 
-                # 정면과 좌측, 우측 거리 기준으로 행동 결정
-                if front_dist <= 0.6:  # 정면에 벽이 45cm 이내일 때 우회전 준비
-                    print("정면에 벽 감지, 우회전 준비 중...")
-                    motor1.stop()
-                    motor2.stop()
-                    motor3.stop()
-                    motor4.stop()
+            # 섹터 인덱스 설정 (예: 8개의 섹터일 경우)
+            front_sector = 0  # 0도 ~ 45도
+            right_sector = 2  # 90도 근처
+            left_sector = 6   # 270도 근처
 
-                    # 우회전하며 정면이 1m 이상이 될 때까지 회전
-                    while front_dist <= 2.0:
-                        print("우회전 중...")
-                        dynamic_turn(motor1, motor2, 40, 40, "right")
-                        dynamic_turn(motor3, motor4, 40, 40, "right")
-                        time.sleep(0.001)  # 잠시 대기 후 정면 거리 업데이트
-                        front_dist, _, _ = update_scan(scan_data, laser)
+            # 각 방향의 최소 거리 가져오기
+            front_dist = sectors[front_sector]
+            right_dist = sectors[right_sector]
+            left_dist = sectors[left_sector]
 
-                elif left_dist <= 0.15:  # 좌측에 벽이 30cm 이내일 때 우회전
-                    print("좌측에 벽이 가까움, 우회전 중...")
-                    motor1.stop()
-                    motor2.stop()
-                    motor3.stop()
-                    motor4.stop()
+            # 거리 임계값 설정 (필요에 따라 조정)
+            threshold_front = 0.6  # 60cm
+            threshold_side = 0.15  # 15cm
 
-                    # 우회전
-                    dynamic_turn(motor1, motor2, 40, 40, "right")
-                    dynamic_turn(motor3, motor4, 40, 40, "right")
-                    time.sleep(0.1)
+            # 우수법 로직 적용
+            if right_dist > threshold_side:
+                # 우측이 열려 있으므로 우회전
+                print("우측이 열려 있음, 우회전 중...")
+                for motor in left_motors:
+                    motor.forward(40)
+                for motor in right_motors:
+                    motor.backward(40)
+            elif front_dist > threshold_front:
+                # 전방이 열려 있으므로 전진
+                print("전방이 열려 있음, 전진 중...")
+                for motor in left_motors + right_motors:
+                    motor.forward(40)
+            else:
+                # 전방과 우측이 막혀 있으므로 좌회전
+                print("전방 및 우측이 막혀 있음, 좌회전 중...")
+                for motor in left_motors:
+                    motor.backward(40)
+                for motor in right_motors:
+                    motor.forward(40)
 
-                elif right_dist <= 0.15:  # 우측에 벽이 30cm 이내일 때 좌회전
-                    print("우측에 벽이 가까움, 좌회전 중...")
-                    motor1.stop()
-                    motor2.stop()
-                    motor3.stop()
-                    motor4.stop()
-
-                    # 좌회전
-                    dynamic_turn(motor1, motor2, 40, 40, "left")
-                    dynamic_turn(motor3, motor4, 40, 40, "left")
-                    time.sleep(0.1)
-
-                else:  # 정면에 장애물이 없으면 전진
-                    motor1.forward()
-                    motor2.forward()
-                    motor3.forward()
-                    motor4.forward()
-                    print("전진 중")
-
-                # 잠시 대기
-                time.sleep(0.001)
+            # 잠시 대기
+            time.sleep(0.1)
 
         except KeyboardInterrupt:
             # 정지 및 정리
