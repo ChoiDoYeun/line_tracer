@@ -165,6 +165,8 @@ def lidar_thread(laser):
 
 # 장애물 회피 동작 함수
 def avoid_obstacle():
+    global left_distance, right_distance  # 전역 변수로 선언
+
     # 최초로 좌우측 거리를 비교하여 회피 방향 결정
     if left_distance > right_distance:
         print("좌측으로 회피")
