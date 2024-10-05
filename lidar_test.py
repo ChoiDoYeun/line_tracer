@@ -13,6 +13,7 @@ def update_scan(scan_data, laser):
         angles = []
         distances = []
         for point in scan_data.points:
+            print(f"각도: {math.degrees(point.angle):.2f}°, 거리: {point.range:.2f} m")
             if -0.5236 <= point.angle <= 0.5236:  # -30도에서 +30도
                 # 거리 값이 0.1m ~ 8m 사이일 때만 유효한 데이터로 간주
                 if 0.01 <= point.range <= 8.0:
@@ -21,6 +22,8 @@ def update_scan(scan_data, laser):
                     # 0도 근처 확인
                     if -0.01 <= point.angle <= 0.01:  # 0도 주변 데이터 출력
                         print(f"0도 근처 데이터 -> 각도: {point.angle:.2f} rad, 거리: {point.range:.2f} meters")
+
+    
                         
         return angles, distances
     else:
