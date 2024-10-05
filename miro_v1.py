@@ -131,7 +131,7 @@ def check_front_and_stop():
     set_angle(90)  # 전방 확인
     front_distance = read_distance()
 
-    if front_distance is not None and front_distance <= 100:
+    if front_distance is not None and front_distance <= 80:
         print(f"전방 거리: {front_distance} cm - 멈춤")
         motor1.stop()
         motor2.stop()
