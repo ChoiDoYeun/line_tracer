@@ -222,6 +222,8 @@ def avoid_obstacle():
 
 # 메인 제어 루프
 def main():
+    global laser  # laser 변수를 전역 변수로 선언
+
     cap = cv2.VideoCapture(0, cv2.CAP_V4L2)
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, 424)
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 240)
@@ -232,7 +234,7 @@ def main():
 
     # Lidar 설정
     ydlidar.os_init()
-    laser = ydlidar.CYdLidar()
+    laser = ydlidar.CYdLidar()  # 전역 변수 laser 초기화
     ports = ydlidar.lidarPortList()
     port = "/dev/ttyUSB0"
     for key, value in ports.items():
