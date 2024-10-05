@@ -91,7 +91,7 @@ def dynamic_right_turn():
             motor4.backward(30)
             
             right_distance = read_distance()  # 거리 다시 측정
-            time.sleep(0.001)
+            time.sleep(0.01)
         
         print("우측 벽이 충분히 멀어짐 - 우회전 완료")
     else:
@@ -107,7 +107,7 @@ def check_front_and_stop():
     set_angle(90)  # 전방 확인
     front_distance = read_distance()
 
-    if front_distance and front_distance <= 50:
+    if front_distance and front_distance <= 80:
         print(f"전방 거리: {front_distance} cm - 멈춤")
         motor1.stop()
         motor2.stop()
