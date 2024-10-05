@@ -15,11 +15,9 @@ def update_scan(scan_data, laser):
         for point in scan_data.points:
             print(f"각도: {math.degrees(point.angle):.2f}°, 거리: {point.range:.2f} m")
             if -0.5236 <= point.angle <= 0.5236:  # -30도에서 +30도
-                # 거리 값이 0.1m ~ 8m 사이일 때만 유효한 데이터로 간주
-                if 0.01 <= point.range <= 8.0:
+                if 0.01 <= point.range <= 8.0:  # 거리 값이 0.01m ~ 8m 사이일 때만 유효한 데이터로 간주
                     angles.append(point.angle)
                     distances.append(point.range)
-                    # 0도 근처 확인
                     if -0.01 <= point.angle <= 0.01:  # 0도 주변 데이터 출력
                         print(f"0도 근처 데이터 -> 각도: {point.angle:.2f} rad, 거리: {point.range:.2f} meters")
 
@@ -46,8 +44,8 @@ if __name__ == "__main__":
     # Lidar 설정
     laser.setlidaropt(ydlidar.LidarPropSerialPort, port)
     laser.setlidaropt(ydlidar.LidarPropSerialBaudrate, 115200)
-    # TOF 설정 제거, 삼각측량 방식에 맞게 설정 변경
-    laser.setlidaropt(ydlidar.LidarPropLidarType, ydlidar.TYPE_TRIANGULAR)
+    # TYPE_TRIANGLE으로 변경
+    laser.setlidaropt(ydlidar.LidarPropLidarType, ydlidar.TYPE_TRIANGLE)
     laser.setlidaropt(ydlidar.LidarPropDeviceType, ydlidar.YDLIDAR_TYPE_SERIAL)
     laser.setlidaropt(ydlidar.LidarPropScanFrequency, 7.0)  # 권장 주파수로 설정
     laser.setlidaropt(ydlidar.LidarPropSampleRate, 3000)  # 샘플레이트 유지
