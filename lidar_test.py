@@ -54,7 +54,7 @@ if __name__ == "__main__":
     laser.setlidaropt(ydlidar.LidarPropSampleRate, 3000)
 
     # 단방향 통신 설정
-    laser.setlidaropt(ydlidar.LidarPropSingleChannel, False)
+    laser.setlidaropt(ydlidar.LidarPropSingleChannel, True)
 
 
     # Lidar 초기화
