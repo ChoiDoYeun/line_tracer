@@ -71,16 +71,24 @@ def update_scan(scan_data, laser):
         print("라이다 데이터 수집 실패.")
         return None
 
-def dynamic_turn(left_motor, right_motor, left_speed, right_speed, direction):
-    """모터 속도를 기반으로 동적 회전"""
-    if direction == "right":  # 우회전
-        left_motor.forward(left_speed)
-        right_motor.backward(right_speed)
-        print(f"우회전: 좌측 속도 {left_speed}, 우측 속도 {right_speed}")
-    elif direction == "left":  # 좌회전
-        left_motor.backward(left_speed)
-        right_motor.forward(right_speed)
-        print(f"좌회전: 좌측 속도 {left_speed}, 우측 속도 {right_speed}")
+def smooth_turn(left_motors, right_motors, start_speed, end_speed, step, direction, delay):
+    """서서히 속도를 변경하며 회전"""
+    if direction == "right":
+        for speed in range(start_speed, end_speed, step):
+            # 좌측 모터 앞으로, 우측 모터 뒤로
+            for motor in left_motors:
+                motor.forward(speed)
+            for motor in right_motors:
+                motor.backward(speed)
+            time.sleep(delay)
+    elif direction == "left":
+        for speed in range(start_speed, end_speed, step):
+            # 좌측 모터 뒤로, 우측 모터 앞으로
+            for motor in left_motors:
+                motor.backward(speed)
+            for motor in right_motors:
+                motor.forward(speed)
+            time.sleep(delay)
 
 if __name__ == "__main__":
     # GPIO 설정
@@ -142,24 +150,18 @@ if __name__ == "__main__":
 
             # 우수법 로직 적용
             if right_dist > threshold_side:
-                # 우측이 열려 있으므로 우회전
-                print("우측이 열려 있음, 우회전 중...")
-                for motor in left_motors:
-                    motor.forward(40)
-                for motor in right_motors:
-                    motor.backward(40)
+                # 우측이 열려 있으므로 서서히 우회전
+                print("우측이 열려 있음, 서서히 우회전 중...")
+                smooth_turn(left_motors, right_motors, 0, 40, 5, "right", 0.05)
             elif front_dist > threshold_front:
                 # 전방이 열려 있으므로 전진
                 print("전방이 열려 있음, 전진 중...")
                 for motor in left_motors + right_motors:
                     motor.forward(40)
             else:
-                # 전방과 우측이 막혀 있으므로 좌회전
-                print("전방 및 우측이 막혀 있음, 좌회전 중...")
-                for motor in left_motors:
-                    motor.backward(40)
-                for motor in right_motors:
-                    motor.forward(40)
+                # 전방과 우측이 막혀 있으므로 서서히 좌회전
+                print("전방 및 우측이 막혀 있음, 서서히 좌회전 중...")
+                smooth_turn(left_motors, right_motors, 0, 40, 5, "left", 0.05)
 
             # 잠시 대기
             time.sleep(0.1)
@@ -178,3 +180,5 @@ if __name__ == "__main__":
         # Lidar 종료
         laser.turnOff()
         laser.disconnecting()
+
+
