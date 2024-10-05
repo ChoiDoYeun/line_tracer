@@ -103,6 +103,13 @@ def check_front_and_stop():
         print(f"전방 거리: {front_distance} cm - 멈춤(장애물)")
         for motor in motors:
             motor.stop()
+    else:
+        if front_distance is None:
+            print("전방 거리 데이터를 읽지 못했습니다.")
+        else:
+            print(f"전방 거리: {front_distance} cm - 전진")
+        for motor in motors:
+            motor.forward(100)
 
 def main():
     """메인 실행 함수"""
