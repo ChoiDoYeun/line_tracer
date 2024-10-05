@@ -5,7 +5,7 @@ import threading
 
 # GPIO 핀 설정
 servo_pin = 4  # 서보모터를 연결할 GPIO 핀 번호
-ser = serial.Serial('/dev/serial0', baudrate=115200, timeout=0.005)  # 거리 센서 통신 설정
+ser = serial.Serial('/dev/serial0', baudrate=115200, timeout=0.001)  # 거리 센서 통신 설정
 
 # GPIO 모드 설정
 GPIO.setmode(GPIO.BCM)
@@ -86,13 +86,13 @@ def sensor_read_thread():
         distance = read_distance()
         if distance is not None:
             latest_distance = distance
-        time.sleep(0.005)  # 너무 빈번한 읽기를 방지
+        time.sleep(0.001)  # 너무 빈번한 읽기를 방지
 
 # 센서를 연속 출력 모드로 설정
 def initialize_sensor():
     """센서를 연속 출력 모드로 설정"""
     ser.write(b'\x42\x57\x02\x00\x00\x00\x00\xff')  # 연속 모드 설정 명령
-    time.sleep(0.1)
+    time.sleep(0.001)
 
 # 전방 거리 확인 및 멈춤 로직
 def check_front_and_stop():
