@@ -136,7 +136,7 @@ if __name__ == "__main__":
                     time.sleep(0.01)
 
                     # 우회전하며 정면이 1m 이상이 될 때까지 회전
-                    while front_dist <= 1.0:
+                    while front_dist <= 2.0:
                         print("우회전 중...")
                         dynamic_turn(motor1, motor2, 40, 40, "right")
                         dynamic_turn(motor3, motor4, 40, 40, "right")
