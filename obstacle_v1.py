@@ -103,7 +103,7 @@ def check_front_and_stop():
         print(f"전방 거리: {front_distance} cm - 멈춤")
         for motor in motors:
             motor.stop()
-			print("전방 장애물")
+	    print("전방 장애물")
 			
 def main():
     """메인 실행 함수"""
