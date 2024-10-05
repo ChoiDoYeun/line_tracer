@@ -168,14 +168,22 @@ def avoid_obstacle():
     # 최초로 좌우측 거리를 비교하여 회피 방향 결정
     if left_distance > right_distance:
         print("좌측으로 회피")
-        control_motors(-50, +50)  # 좌측으로 회피
-        time.sleep(0.1)  # 일정 시간 이동
+        control_motors(-50, 50)  # 좌측으로 회피
+        time.sleep(0.25)  # 일정 시간 이동
         print("좌측 최초 회피 끝")
     else:
         print("우측으로 회피")
         control_motors(50, -50)  # 우측으로 회피
-        time.sleep(0.1)  # 일정 시간 이동
+        time.sleep(0.25)  # 일정 시간 이동
         print("우측 최초 회피 끝")
+
+    # 회피 후 멈추고 다시 거리 재확인
+    motor1.stop()
+    motor2.stop()
+    motor3.stop()
+    motor4.stop()
+
+    time.sleep(0.1)  # 정지 후 잠시 대기
 
     # 이동 후 다시 좌우측 거리 재확인
     with obstacle_lock:
@@ -183,15 +191,21 @@ def avoid_obstacle():
         if left_distance > right_distance:
             print("계속 좌측으로 회피")
             control_motors(-50, 50)  # 좌측 회피 계속
-            time.sleep(0.001)  # 일정 시간 이동
-            print("좌측 재 회피 꿑")
+            time.sleep(0.25)  # 일정 시간 이동
+            print("좌측 재 회피 끝")
         else:
             print("우측으로 전환")
             control_motors(50, -50)  # 우측 회피로 전환
-            time.sleep(0.001)  # 일정 시간 이동
-            rint("우측 재 회피 꿑")
+            time.sleep(0.25)  # 일정 시간 이동
+            print("우측 재 회피 끝")
 
-    time.sleep(1)  # 회피 완료 후 다시 이동
+    # 회피 후 다시 모터 정지
+    motor1.stop()
+    motor2.stop()
+    motor3.stop()
+    motor4.stop()
+
+    time.sleep(0.5)  # 회피 후 잠시 대기
 
 # 메인 제어 루프
 def main():
