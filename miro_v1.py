@@ -60,7 +60,7 @@ def set_angle(angle):
     """서보모터의 각도를 설정"""
     duty = angle / 18 + 2
     pwm.ChangeDutyCycle(duty)
-    time.sleep(0.3)
+    time.sleep(0.5)
 
 # 거리 측정 함수
 def read_distance():
