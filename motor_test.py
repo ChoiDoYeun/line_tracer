@@ -51,7 +51,7 @@ try:
     motor2.backward(50)
     motor3.forward(50)
     motor4.backward(50)
-    time.sleep(1)
+    time.sleep(2)
     
 
 
