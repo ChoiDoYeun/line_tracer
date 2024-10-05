@@ -3,6 +3,8 @@ import numpy as np
 import time
 import math
 import RPi.GPIO as GPIO
+import sys
+import ydlidar
 
 # PID 상수
 Kp = 0.22
@@ -97,8 +99,7 @@ def process_image(frame):
     line_center_x, diff = None, None
     found = False
 
-    # 수정된 부분: lines가 None이 아니고 길이가 0보다 큰지 확인
-    if lines is not None and len(lines) > 0:
+    if lines is not None:
         x_positions = []
         for line in lines:
             x1, y1, x2, y2 = line[0]
@@ -114,7 +115,7 @@ def process_image(frame):
             line_center_x = (left_x + right_x) // 2
             diff = line_center_x - 211
             found = True
-        elif num_positions == 1:
+        else:
             line_center_x = x_positions[0]
             diff = line_center_x - 211
             found = True
@@ -122,8 +123,23 @@ def process_image(frame):
     if not found:
         line_center_x = 211
         diff = 0
+        print("선을 감지하지 못했습니다.")
 
-    return line_center_x, diff, found
+    return line_center_x, diff
+
+# 라이다 거리 측정 함수
+def check_obstacle(laser, scan_data):
+    r = laser.doProcessSimple(scan_data)
+    if r:
+        front_distance = float('inf')
+        for point in scan_data.points:
+            degree_angle = math.degrees(point.angle)
+            if 0.01 <= point.range <= 8.0:  # 유효한 거리 데이터
+                if -15 <= degree_angle <= 15:  # 0도 근처 (정면)
+                    front_distance = min(front_distance, point.range)
+        if front_distance <= 0.3:  # 30cm 이내에 장애물 감지
+            return True
+    return False
 
 # 메인 제어 루프
 def main():
@@ -135,11 +151,27 @@ def main():
         print("카메라를 열 수 없습니다.")
         return
 
-    prev_time = time.time()
+    # Lidar 설정
+    ydlidar.os_init()
+    laser = ydlidar.CYdLidar()
+    ports = ydlidar.lidarPortList()
+    port = "/dev/ttyUSB0"
+    for key, value in ports.items():
+        port = value
+    laser.setlidaropt(ydlidar.LidarPropSerialPort, port)
+    laser.setlidaropt(ydlidar.LidarPropSerialBaudrate, 115200)
+    laser.setlidaropt(ydlidar.LidarPropLidarType, ydlidar.TYPE_TRIANGLE)
+    laser.setlidaropt(ydlidar.LidarPropDeviceType, ydlidar.YDLIDAR_TYPE_SERIAL)
+    laser.setlidaropt(ydlidar.LidarPropScanFrequency, 7.0)
+    laser.setlidaropt(ydlidar.LidarPropSampleRate, 3000)
+    laser.setlidaropt(ydlidar.LidarPropSingleChannel, True)
+    ret = laser.initialize()
 
-    # 라인 감지 실패 횟수 추적
-    no_line_count = 0
-    miro = False
+    if ret:
+        ret = laser.turnOn()
+        scan_data = ydlidar.LaserScan()
+
+    prev_time = time.time()
 
     try:
         while True:
@@ -152,40 +184,31 @@ def main():
             dt = current_time - prev_time
             prev_time = current_time
 
-            line_center_x, diff, found = process_image(frame)
+            line_center_x, diff = process_image(frame)
 
             if math.isnan(line_center_x) or math.isnan(diff):
                 print("경고: 계산된 값이 NaN입니다.")
                 continue
 
-            # 라인을 감지하지 못한 경우
-            if not found:
-                no_line_count += 1
-                print(f"선을 감지하지 못했습니다. {no_line_count} 프레임 연속 실패.")
-            else:
-                no_line_count = 0  # 라인을 감지하면 카운트를 초기화
-
-            # 연속 5프레임 이상 라인을 감지하지 못한 경우
-            if no_line_count >= 5:
-                miro = True
-                print("미로 모드 활성화: 라인을 5프레임 연속으로 감지하지 못했습니다.")
-                break  # 프로그램 종료
-
-            # 임계값 내에서는 base_speed = 100, 임계값을 벗어나면 base_speed = 20
             if -60 <= diff <= 60:
-                base_speed = 100  # 기준값 내에서 이동 속도 유지
-                pid_value = 0  # 보정값을 0으로 설정
+                base_speed = 100
+                pid_value = 0
             else:
-                base_speed = 20  # 임계 구간을 벗어나면 이동 속도 감소
+                base_speed = 20
                 pid_value = pid_control(diff, dt)
 
-            # 속도 계산
             left_motor_speed = base_speed + pid_value
             right_motor_speed = base_speed - pid_value
 
-            print(f"left : {left_motor_speed} , right : {right_motor_speed}")
+            # 장애물 감지
+            if check_obstacle(laser, scan_data):
+                print("장애물 감지, 멈춤")
+                motor1.stop()
+                motor2.stop()
+                motor3.stop()
+                motor4.stop()
+                break
 
-            # 모터 제어 함수 호출
             control_motors(left_motor_speed, right_motor_speed)
 
             if cv2.waitKey(1) & 0xFF == ord('q'):
@@ -200,11 +223,12 @@ def main():
         motor2.cleanup()
         motor3.cleanup()
         motor4.cleanup()
+        laser.turnOff()
+        laser.disconnecting()
 
     cap.release()
     cv2.destroyAllWindows()
 
-# 프로그램 실행
 if __name__ == "__main__":
     GPIO.setmode(GPIO.BCM)
     main()
