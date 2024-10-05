@@ -161,10 +161,10 @@ def check_front_and_stop():
             print("전방 거리 데이터를 읽지 못했습니다.")
         else:
             print(f"전방 거리: {front_distance} cm - 전진")
-        motor1.forward(40)
-        motor2.forward(40)
-        motor3.forward(40)
-        motor4.forward(40)
+        motor1.forward(30)
+        motor2.forward(30)
+        motor3.forward(30)
+        motor4.forward(30)
 
 def main():
     """메인 실행 함수"""
