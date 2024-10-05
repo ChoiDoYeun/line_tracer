@@ -86,10 +86,10 @@ def is_obstacle_ahead(threshold=30):
 def find_clear_direction(threshold=30):
     """장애물이 없는 방향을 탐색"""
     # 좌측 확인
-    set_angle(135)
+    set_angle(180)
     left_distance = read_distance()
     # 우측 확인
-    set_angle(45)
+    set_angle(0)
     right_distance = read_distance()
 
     # 장애물이 없는 방향 반환
