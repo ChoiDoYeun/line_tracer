@@ -81,7 +81,7 @@ def dynamic_right_turn():
     set_angle(0)  # 우측 각도 설정
     right_distance = read_distance()
     
-    if right_distance > 30
+    if right_distance > 30 :
         print(f"우측 거리: {right_distance} cm - 우회전 중")
         motor1.forward(30)
         motor2.backward(30)
