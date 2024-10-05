@@ -6,7 +6,7 @@ import time
 
 def main():
     # LiDAR 초기화
-    lidar = CYdLidar()
+    lidar = ydlidar()
 
     # LiDAR 설정
     port = "/dev/ttyUSB0"  # 포트 설정
