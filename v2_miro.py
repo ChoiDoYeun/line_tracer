@@ -78,7 +78,7 @@ def dynamic_turn(left_motor, right_motor, left_speed, right_speed, direction):
     """모터 속도를 기반으로 동적 회전"""
     if direction == "right":  # 우회전
         left_motor.forward(left_speed)
-        right_motor.forward(right_speed)
+        right_motor.backward(right_speed)
         print(f"우회전: 좌측 속도 {left_speed}, 우측 속도 {right_speed}")
     elif direction == "left":  # 좌회전
         left_motor.backward(left_speed)
@@ -127,18 +127,27 @@ if __name__ == "__main__":
                     continue
 
                 # 거리 데이터 기준으로 행동 결정
-                if right_dist > 0.3:  # 우측에 벽이 없으면 우회전 (동적 제어)
-                    dynamic_turn(motor1, motor2, 40, 30, "right")
-                    dynamic_turn(motor3, motor4, 40, 30, "right")
+                if front_dist <= 0.6:  # 정면에 벽이 1m 이내에 있으면 우회전
+                    print("정면에 벽 감지, 우회전 준비 중...")
+                    motor1.stop()
+                    motor2.stop()
+                    motor3.stop()
+                    motor4.stop()
+
+                    # 우회전하며 정면이 1m 이상이 될 때까지 회전
+                    while front_dist <= 1.0:
+                        print("우회전 중...")
+                        dynamic_turn(motor1, motor2, 40, 40, "right")
+                        dynamic_turn(motor3, motor4, 40, 40, "right")
+                        time.sleep(0.1)  # 잠시 대기 후 정면 거리 업데이트
+                        front_dist, _, _ = update_scan(scan_data, laser)
+
                 elif front_dist > 0.6:  # 정면에 장애물이 없으면 전진
                     motor1.forward()
                     motor2.forward()
                     motor3.forward()
                     motor4.forward()
                     print("전진 중")
-                else:  # 우측과 정면에 벽이 있으면 좌회전 (동적 제어)
-                    dynamic_turn(motor1, motor2, 30, 40, "left")
-                    dynamic_turn(motor3, motor4, 30, 40, "left")
 
                 # 잠시 대기
                 time.sleep(0.1)
