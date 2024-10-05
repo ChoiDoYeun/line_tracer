@@ -136,7 +136,7 @@ def process_image(frame):
 
 # 라이다 데이터 처리 스레드 함수
 def lidar_thread(laser):
-    global obstacle_detected, left_distance, right_distance
+    global obstacle_detected, left_distance, right_distance, laser
     scan_data = ydlidar.LaserScan()
     while True:
         r = laser.doProcessSimple(scan_data)
