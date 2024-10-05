@@ -1,21 +1,19 @@
-import RPi.GPIO as GPIO
+import cv2
+import numpy as np
 import time
-import serial
-import threading
+import math
+import RPi.GPIO as GPIO
 
-# GPIO 핀 설정
-servo_pin = 4  # 서보모터를 연결할 GPIO 핀 번호
-ser = serial.Serial('/dev/serial0', baudrate=115200, timeout=0.05)  # 통신 속도 설정 및 타임아웃 조정
+# PID 상수
+Kp = 0.22
+Ki = 0.00
+Kd = 0.04
 
-# GPIO 모드 설정
-GPIO.setmode(GPIO.BCM)
-GPIO.setup(servo_pin, GPIO.OUT)
+# PID 제어 변수
+prev_error = 0.0
+integral = 0.0
 
-# PWM 주파수 설정 (서보모터의 주파수는 보통 50Hz)
-pwm = GPIO.PWM(servo_pin, 50)
-pwm.start(0)
-
-# MotorController 클래스 정의
+# MotorController 클래스
 class MotorController:
     def __init__(self, en, in1, in2):
         self.en = en
@@ -50,120 +48,162 @@ class MotorController:
         self.pwm.stop()
         GPIO.cleanup([self.en, self.in1, self.in2])
 
+GPIO.setmode(GPIO.BCM)
+
 # 모터 초기화
-motors = [
-    MotorController(18, 17, 27),  # motor1: left front
-    MotorController(22, 23, 24),  # motor2: right front
-    MotorController(9, 10, 11),   # motor3: left back
-    MotorController(25, 8, 7),    # motor4: right back
-]
+motor1 = MotorController(18, 17, 27)  # left front
+motor2 = MotorController(22, 23, 24)  # right front
+motor3 = MotorController(9, 10, 11)   # left back
+motor4 = MotorController(25, 8, 7)    # right back
 
-# 서보모터 제어 함수
-def set_angle(angle):
-    """서보모터의 각도를 설정"""
-    duty = angle / 18 + 2
-    pwm.ChangeDutyCycle(duty)
-    # 각도 변경 후 대기 시간 조정
-    time.sleep(0.2)
+# PID 제어 함수
+def pid_control(error, dt):
+    global prev_error, integral
+    
+    proportional = error
+    integral += error * dt
+    derivative = (error - prev_error) / dt if dt > 0 else 0
+    prev_error = error
 
-# 거리 측정 함수
-def read_distance():
-    """TF Luna 센서에서 거리 데이터를 읽어옴"""
-    response = ser.read(9)
-    if len(response) == 9 and response[0] == 0x59 and response[1] == 0x59:
-        distance = response[2] + response[3] * 256
-        return distance
+    return Kp * proportional + Ki * integral + Kd * derivative
+
+# 모터 제어 함수
+def control_motors(left_speed, right_speed):
+    left_speed = max(min(left_speed, 100), -100)
+    right_speed = max(min(right_speed, 100), -100)
+
+    if left_speed >= 0:
+        motor1.forward(left_speed)
+        motor3.forward(left_speed)
     else:
-        return None
+        motor1.backward(-left_speed)
+        motor3.backward(-left_speed)
 
-# 최신 거리 값을 저장할 전역 변수
-latest_distance = None
-
-# 센서 데이터를 지속적으로 읽어오는 스레드 함수
-def sensor_read_thread():
-    global latest_distance
-    while True:
-        distance = read_distance()
-        if distance is not None:
-            latest_distance = distance
-        time.sleep(0.01)  # 너무 빈번한 읽기를 방지
-
-# 센서를 연속 출력 모드로 설정
-def initialize_sensor():
-    """센서를 연속 출력 모드로 설정"""
-    ser.write(b'\x42\x57\x02\x00\x00\x00\x00\xff')  # 연속 모드 설정 명령
-    time.sleep(0.1)
-
-# 우회전 로직
-def dynamic_right_turn():
-    """동적으로 우회전을 수행하는 함수"""
-    max_turn_time = 5  # 최대 회전 시간 설정
-    start_time = time.time()
-
-    set_angle(90)  # 전방 각도 설정
-
-    while True:
-        front_distance = latest_distance
-
-        if front_distance is not None:
-            print(f"전방 거리: {front_distance} cm")
-        else:
-            print("전방 거리 데이터를 읽지 못했습니다.")
-
-        if front_distance is not None and front_distance <= 50:
-            print("우회전 중...")
-            # 우회전 모터 동작
-            motors[0].forward(30)
-            motors[1].backward(30)
-            motors[2].forward(30)
-            motors[3].backward(30)
-            time.sleep(0.1)
-        else:
-            print("전방 거리가 충분합니다. 회전을 멈춥니다.")
-            break
-
-        if time.time() - start_time > max_turn_time:
-            print("최대 회전 시간을 초과했습니다. 회전을 멈춥니다.")
-            break
-
-    # 모터 정지
-    for motor in motors:
-        motor.stop()
-
-# 전방 거리 확인 및 멈춤 로직
-def check_front_and_stop():
-    """전방 거리를 확인하고, 장애물이 있으면 우회전 시도"""
-    front_distance = latest_distance
-
-    if front_distance is not None and front_distance <= 50:
-        print(f"전방 거리: {front_distance} cm - 멈춤")
-        for motor in motors:
-            motor.stop()
-        dynamic_right_turn()  # 우회전 시도
+    if right_speed >= 0:
+        motor2.forward(right_speed)
+        motor4.forward(right_speed)
     else:
-        if front_distance is None:
-            print("전방 거리 데이터를 읽지 못했습니다.")
-        else:
-            print(f"전방 거리: {front_distance} cm - 전진")
-        for motor in motors:
-            motor.forward(20)
+        motor2.backward(-right_speed)
+        motor4.backward(-right_speed)
 
+# 이미지 처리 함수
+def process_image(frame):
+    hls = cv2.cvtColor(frame, cv2.COLOR_BGR2HLS)
+    s_channel = hls[:, :, 2]
+    blurred = cv2.GaussianBlur(s_channel, (5, 5), 0)
+    canny_edges = cv2.Canny(blurred, 50, 150)
+    lines = cv2.HoughLinesP(canny_edges, 1, np.pi / 180, threshold=20, minLineLength=5, maxLineGap=10)
+
+    line_center_x, diff = None, None
+    found = False
+
+    if lines is not None:
+        x_positions = []
+        for line in lines:
+            x1, y1, x2, y2 = line[0]
+            x_mid = (x1 + x2) // 2
+            x_positions.append(x_mid)
+
+        x_positions.sort()
+        num_positions = len(x_positions)
+
+        if num_positions >= 2:
+            left_x = x_positions[0]
+            right_x = x_positions[-1]
+            line_center_x = (left_x + right_x) // 2
+            diff = line_center_x - 211
+            found = True
+        else:
+            line_center_x = x_positions[0]
+            diff = line_center_x - 211
+            found = True
+
+    if not found:
+        line_center_x = 211
+        diff = 0
+
+    return line_center_x, diff, found
+
+# 메인 제어 루프
 def main():
-    """메인 실행 함수"""
-    set_angle(90)  # 전방 각도로 설정
-    while True:
-        check_front_and_stop()
-        time.sleep(0.05)  # 메인 루프 주기 설정
+    cap = cv2.VideoCapture(0, cv2.CAP_V4L2)
+    cap.set(cv2.CAP_PROP_FRAME_WIDTH, 424)
+    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 240)
 
-if __name__ == "__main__":
+    if not cap.isOpened():
+        print("카메라를 열 수 없습니다.")
+        return
+
+    prev_time = time.time()
+
+    # 라인 감지 실패 횟수 추적
+    no_line_count = 0
+    miro = False
+
     try:
-        initialize_sensor()
-        sensor_thread = threading.Thread(target=sensor_read_thread)
-        sensor_thread.daemon = True
-        sensor_thread.start()
-        main()  # 메인 함수 실행
-    except KeyboardInterrupt:
-        print("프로그램 종료")
+        while True:
+            ret, frame = cap.read()
+            if not ret:
+                print("프레임을 가져올 수 없습니다.")
+                break
+
+            current_time = time.time()
+            dt = current_time - prev_time
+            prev_time = current_time
+
+            line_center_x, diff, found = process_image(frame)
+
+            if math.isnan(line_center_x) or math.isnan(diff):
+                print("경고: 계산된 값이 NaN입니다.")
+                continue
+
+            # 라인을 감지하지 못한 경우
+            if not found:
+                no_line_count += 1
+                print(f"선을 감지하지 못했습니다. {no_line_count} 프레임 연속 실패.")
+            else:
+                no_line_count = 0  # 라인을 감지하면 카운트를 초기화
+
+            # 연속 5프레임 이상 라인을 감지하지 못한 경우
+            if no_line_count >= 5:
+                miro = True
+                print("미로 모드 활성화: 라인을 5프레임 연속으로 감지하지 못했습니다.")
+                break  # 프로그램 종료
+
+            # 임계값 내에서는 base_speed = 50, 임계값을 벗어나면 base_speed = 0
+            if -60 <= diff <= 60:
+                base_speed = 100  # 기준값 내에서 이동 속도 유지
+                pid_value = 0  # 보정값을 0으로 설정
+            else:
+                base_speed = 20  # 임계 구간을 벗어나면 이동 정지
+                pid_value = pid_control(diff, dt)
+
+            # 속도 계산
+            left_motor_speed = base_speed + pid_value
+            right_motor_speed = base_speed - pid_value
+
+            print(f"left : {left_motor_speed} , right : {right_motor_speed}")
+
+            # 모터 제어 함수 호출
+            control_motors(left_motor_speed, right_motor_speed)
+
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                break
+
     finally:
-        pwm.stop()
-        GPIO.cleanup()
+        motor1.stop()
+        motor2.stop()
+        motor3.stop()
+        motor4.stop()
+        motor1.cleanup()
+        motor2.cleanup()
+        motor3.cleanup()
+        motor4.cleanup()
+
+    cap.release()
+    cv2.destroyAllWindows()
+
+# 프로그램 실행
+if __name__ == "__main__":
+    GPIO.setmode(GPIO.BCM)
+    main()
