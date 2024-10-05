@@ -60,13 +60,11 @@ def set_angle(angle):
     """서보모터의 각도를 설정"""
     duty = angle / 18 + 2
     pwm.ChangeDutyCycle(duty)
-    time.sleep(0.5)  # 대기 시간을 0.5초로 조정
+    time.sleep(0.3)  # 대기 시간을 0.3초로 조정
 
-# 거리 측정 함수
+# 거리 측정 함수 (명령 전송 제거)
 def read_distance():
     """TF Luna 센서에서 거리 데이터를 읽어옴"""
-    ser.reset_input_buffer()
-    ser.write(b'\x42\x57\x02\x00\x00\x00\x01\x06')  # 데이터 요청 명령
     response = ser.read(9)
     
     if len(response) == 9 and response[0] == 0x59 and response[1] == 0x59:
@@ -74,6 +72,24 @@ def read_distance():
         return distance
     else:
         return None
+
+# 최신 거리 값을 저장할 전역 변수
+latest_distance = None
+
+# 센서 데이터를 지속적으로 읽어오는 스레드 함수
+def sensor_read_thread():
+    global latest_distance
+    while True:
+        distance = read_distance()
+        if distance is not None:
+            latest_distance = distance
+        time.sleep(0.01)  # 너무 빈번한 읽기를 방지
+
+# 센서를 연속 출력 모드로 설정
+def initialize_sensor():
+    """센서를 연속 출력 모드로 설정"""
+    ser.write(b'\x42\x57\x02\x00\x00\x00\x00\xff')  # 연속 모드 설정 명령
+    time.sleep(0.1)
 
 # 우회전 로직
 def dynamic_right_turn():
@@ -153,9 +169,14 @@ def main():
     """메인 실행 함수"""
     while True:
         check_front_and_stop()
+        time.sleep(0.01)  # 메인 루프 주기 설정
 
 if __name__ == "__main__":
     try:
+        initialize_sensor()
+        sensor_thread = threading.Thread(target=sensor_read_thread)
+        sensor_thread.daemon = True
+        sensor_thread.start()
         main()  # 메인 함수 실행
     except KeyboardInterrupt:
         print("프로그램 종료")
