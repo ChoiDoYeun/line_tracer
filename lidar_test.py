@@ -14,11 +14,15 @@ def update_scan(scan_data, laser):
         distances = []
         for point in scan_data.points:
             if -0.5236 <= point.angle <= 0.5236:  # -30도에서 +30도
-                angles.append(point.angle)
-                distances.append(point.range)
-                # 0도 근처 확인
-                if -0.01 <= point.angle <= 0.01:  # 0도 주변 데이터 출력
-                    print(f"0도 근처 데이터 -> 각도: {point.angle:.2f} rad, 거리: {point.range:.2f} meters")
+                # 거리 값이 0.1m ~ 8m 사이일 때만 유효한 데이터로 간주
+                if 0.1 <= point.range <= 8.0:
+                    angles.append(point.angle)
+                    distances.append(point.range)
+                    # 0도 근처 확인
+                    if -0.01 <= point.angle <= 0.01:  # 0도 주변 데이터 출력
+                        print(f"0도 근처 데이터 -> 각도: {point.angle:.2f} rad, 거리: {point.range:.2f} meters")
+                else:
+                    print(f"Out of range data -> 각도: {point.angle:.2f} rad, 거리: {point.range:.2f} meters (Filtered)")
         return angles, distances
     else:
         print("Failed to get Lidar Data.")
