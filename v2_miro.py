@@ -71,6 +71,15 @@ def update_scan(scan_data, laser):
         print("Failed to get Lidar Data.")
         return None, None, None
 
+def dynamic_turn(left_motor, right_motor, left_speed, right_speed, direction):
+    """모터 속도를 기반으로 동적 회전"""
+    if direction == "right":  # 우회전
+        left_motor.forward(left_speed)
+        right_motor.forward(right_speed)
+    elif direction == "left":  # 좌회전
+        left_motor.backward(left_speed)
+        right_motor.forward(right_speed)
+
 if __name__ == "__main__":
     # GPIO 설정
     GPIO.setmode(GPIO.BCM)
@@ -113,23 +122,17 @@ if __name__ == "__main__":
                     continue
 
                 # 거리 데이터 기준으로 행동 결정
-                if right_dist > 0.3:  # 우측에 벽이 없으면 우회전
-                    motor1.forward()
-                    motor2.backward()
-                    motor3.forward()
-                    motor4.backward()
-                    time.sleep(0.5)
+                if right_dist > 0.3:  # 우측에 벽이 없으면 우회전 (동적 제어)
+                    dynamic_turn(motor1, motor2, 40, 30, "right")
+                    dynamic_turn(motor3, motor4, 40, 30, "right")
                 elif front_dist > 0.3:  # 정면에 장애물이 없으면 전진
                     motor1.forward()
                     motor2.forward()
                     motor3.forward()
                     motor4.forward()
-                else:  # 우측과 정면에 벽이 있으면 좌회전
-                    motor1.backward()
-                    motor2.forward()
-                    motor3.backward()
-                    motor4.forward()
-                    time.sleep(0.5)
+                else:  # 우측과 정면에 벽이 있으면 좌회전 (동적 제어)
+                    dynamic_turn(motor1, motor2, 30, 40, "left")
+                    dynamic_turn(motor3, motor4, 30, 40, "left")
 
                 # 잠시 대기
                 time.sleep(0.1)
