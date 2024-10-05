@@ -169,12 +169,12 @@ def avoid_obstacle():
     if left_distance > right_distance:
         print("좌측으로 회피")
         control_motors(-50, 50)  # 좌측으로 회피
-        time.sleep(1)  # 일정 시간 이동
+        time.sleep(0.75)  # 일정 시간 이동
         print("좌측 최초 회피 끝")
     else:
         print("우측으로 회피")
         control_motors(50, -50)  # 우측으로 회피
-        time.sleep(1)  # 일정 시간 이동
+        time.sleep(0.75)  # 일정 시간 이동
         print("우측 최초 회피 끝")
 
     # 회피 후 멈추고 다시 거리 재확인
@@ -185,27 +185,38 @@ def avoid_obstacle():
 
     time.sleep(0.1)  # 정지 후 잠시 대기
 
-    # 이동 후 다시 좌우측 거리 재확인
-    with obstacle_lock:
-        print(f"다시 좌측 거리: {left_distance} m, 우측 거리: {right_distance} m")
-        if left_distance > right_distance:
-            print("계속 좌측으로 회피")
-            control_motors(-50, 50)  # 좌측 회피 계속
-            time.sleep(0.25)  # 일정 시간 이동
-            print("좌측 재 회피 끝")
-        else:
-            print("우측으로 전환")
-            control_motors(50, -50)  # 우측 회피로 전환
-            time.sleep(0.25)  # 일정 시간 이동
-            print("우측 재 회피 끝")
+    # 강제로 라이다 데이터를 재확인
+    scan_data = ydlidar.LaserScan()
+    if laser.doProcessSimple(scan_data):  # 라이다 데이터를 강제로 다시 처리
+        with obstacle_lock:
+            left_distance = float('inf')
+            right_distance = float('inf')
+            for point in scan_data.points:
+                degree_angle = math.degrees(point.angle)
+                if 0.01 <= point.range <= 8.0:
+                    if 85 <= degree_angle <= 95:  # 좌측
+                        left_distance = min(left_distance, point.range)
+                    if -95 <= degree_angle <= -85:  # 우측
+                        right_distance = min(right_distance, point.range)
+            print(f"갱신된 좌측 거리: {left_distance} m, 갱신된 우측 거리: {right_distance} m")
 
-    # 회피 후 다시 모터 정지
+    # 갱신된 거리 데이터를 기반으로 추가 회피 동작
+    if left_distance > right_distance:
+        print("계속 좌측으로 회피")
+        control_motors(-50, 50)  # 좌측 회피 계속
+        time.sleep(0.25)  # 일정 시간 이동
+        print("좌측 재 회피 끝")
+    else:
+        print("우측으로 전환")
+        control_motors(50, -50)  # 우측 회피로 전환
+        time.sleep(0.25)  # 일정 시간 이동
+        print("우측 재 회피 끝")
+
     motor1.stop()
     motor2.stop()
     motor3.stop()
     motor4.stop()
-
-    time.sleep(0.5)  # 회피 후 잠시 대기
+    time.sleep(0.25)  # 회피 후 잠시 대기
 
 # 메인 제어 루프
 def main():
