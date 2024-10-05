@@ -163,6 +163,30 @@ def lidar_thread(laser):
                 obstacle_detected = False
         time.sleep(0.01)  # 주기 조정
 
+# 장애물 회피 동작 함수
+def avoid_obstacle():
+    # 최초로 좌우측 거리를 비교하여 회피 방향 결정
+    if left_distance > right_distance:
+        print("좌측으로 회피")
+        control_motors(50, 20)  # 좌측으로 회피
+        time.sleep(1)  # 일정 시간 이동
+    else:
+        print("우측으로 회피")
+        control_motors(20, 50)  # 우측으로 회피
+        time.sleep(1)  # 일정 시간 이동
+
+    # 이동 후 다시 좌우측 거리 재확인
+    with obstacle_lock:
+        print(f"다시 좌측 거리: {left_distance} m, 우측 거리: {right_distance} m")
+        if left_distance > right_distance:
+            print("계속 좌측으로 회피")
+            control_motors(50, 20)  # 좌측 회피 계속
+        else:
+            print("우측으로 전환")
+            control_motors(20, 50)  # 우측 회피로 전환
+
+    time.sleep(1)  # 회피 완료 후 다시 이동
+
 # 메인 제어 루프
 def main():
     cap = cv2.VideoCapture(0, cv2.CAP_V4L2)
@@ -228,29 +252,23 @@ def main():
             left_motor_speed = base_speed + pid_value
             right_motor_speed = base_speed - pid_value
 
-            # 장애물 감지 확인 및 좌/우측 거리 비교
+            # 장애물 감지 확인
             with obstacle_lock:
                 if obstacle_detected:
                     print("장애물 감지, 멈춤")
-                    print(f"좌측 거리: {left_distance} m, 우측 거리: {right_distance} m")
-                    
-                    if left_distance > right_distance:
-                        print("좌측으로 회피할 공간이 더 많습니다.")
-                    else:
-                        print("우측으로 회피할 공간이 더 많습니다.")
-
                     motor1.stop()
                     motor2.stop()
                     motor3.stop()
                     motor4.stop()
-                    break  # 필요에 따라 조정
+
+                    # 회피 동작 수행
+                    avoid_obstacle()
 
             control_motors(left_motor_speed, right_motor_speed)
 
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
 
-   
     finally:
         motor1.stop()
         motor2.stop()
