@@ -18,6 +18,8 @@ integral = 0.0
 
 # 장애물 감지 변수
 obstacle_detected = False
+left_distance = float('inf')
+right_distance = float('inf')
 obstacle_lock = threading.Lock()
 
 # MotorController 클래스
@@ -134,19 +136,28 @@ def process_image(frame):
 
 # 라이다 데이터 처리 스레드 함수
 def lidar_thread(laser):
-    global obstacle_detected
+    global obstacle_detected, left_distance, right_distance
     scan_data = ydlidar.LaserScan()
     while True:
         r = laser.doProcessSimple(scan_data)
         if r:
             front_distance = float('inf')
+            left_distance = float('inf')
+            right_distance = float('inf')
             for point in scan_data.points:
                 degree_angle = math.degrees(point.angle)
                 if 0.01 <= point.range <= 8.0:
+                    # 정면 감지
                     if -5 <= degree_angle <= 5:
                         front_distance = min(front_distance, point.range)
+                    # 좌측 감지 (90도)
+                    if 85 <= degree_angle <= 95:
+                        left_distance = min(left_distance, point.range)
+                    # 우측 감지 (-90도)
+                    if -95 <= degree_angle <= -85:
+                        right_distance = min(right_distance, point.range)
             with obstacle_lock:
-                obstacle_detected = front_distance <= 0.8  # 60cm 이내
+                obstacle_detected = front_distance <= 0.8  # 80cm 이내 장애물 감지
         else:
             with obstacle_lock:
                 obstacle_detected = False
@@ -169,13 +180,13 @@ def main():
     port = "/dev/ttyUSB0"
     for key, value in ports.items():
         port = value
-    # Lidar 설정
+    # 기존 라이다 설정 유지
     laser.setlidaropt(ydlidar.LidarPropSerialPort, port)
     laser.setlidaropt(ydlidar.LidarPropSerialBaudrate, 115200)
     laser.setlidaropt(ydlidar.LidarPropLidarType, ydlidar.TYPE_TRIANGLE)
     laser.setlidaropt(ydlidar.LidarPropDeviceType, ydlidar.YDLIDAR_TYPE_SERIAL)
-    laser.setlidaropt(ydlidar.LidarPropScanFrequency, 10.0)  # 주파수 증가
-    laser.setlidaropt(ydlidar.LidarPropSampleRate, 5000)  # 샘플레이트 증가
+    laser.setlidaropt(ydlidar.LidarPropScanFrequency, 7.0)  # 권장 주파수로 설정
+    laser.setlidaropt(ydlidar.LidarPropSampleRate, 3000)  # 샘플레이트 유지
     laser.setlidaropt(ydlidar.LidarPropSingleChannel, True)
     ret = laser.initialize()
 
@@ -217,10 +228,17 @@ def main():
             left_motor_speed = base_speed + pid_value
             right_motor_speed = base_speed - pid_value
 
-            # 장애물 감지 확인
+            # 장애물 감지 확인 및 좌/우측 거리 비교
             with obstacle_lock:
                 if obstacle_detected:
                     print("장애물 감지, 멈춤")
+                    print(f"좌측 거리: {left_distance} m, 우측 거리: {right_distance} m")
+                    
+                    if left_distance > right_distance:
+                        print("좌측으로 회피할 공간이 더 많습니다.")
+                    else:
+                        print("우측으로 회피할 공간이 더 많습니다.")
+
                     motor1.stop()
                     motor2.stop()
                     motor3.stop()
@@ -232,6 +250,7 @@ def main():
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
 
+   
     finally:
         motor1.stop()
         motor2.stop()
