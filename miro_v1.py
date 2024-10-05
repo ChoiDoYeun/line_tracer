@@ -81,21 +81,27 @@ def dynamic_right_turn():
     set_angle(0)  # 우측 각도 설정
     right_distance = read_distance()
     
-    if right_distance > 30 :
+    if right_distance is not None and right_distance > 30:
         print(f"우측 거리: {right_distance} cm - 우회전 중")
         motor1.forward(30)
         motor2.backward(30)
         motor3.forward(30)
         motor4.backward(30)
         time.sleep(1.25)
+    else:
+        print("우측 거리 데이터를 읽지 못했습니다. 우회전 중지.")
+        motor1.stop()
+        motor2.stop()
+        motor3.stop()
+        motor4.stop()
 
 # 전방 거리 확인 및 멈춤 로직
 def check_front_and_stop():
-    """전방 거리를 측정하고, 80cm 이하이면 멈추고 우회전을 시도"""
+    """전방 거리를 측정하고, 100cm 이하이면 멈추고 우회전을 시도"""
     set_angle(90)  # 전방 확인
     front_distance = read_distance()
 
-    if front_distance and front_distance <= 100:
+    if front_distance is not None and front_distance <= 100:
         print(f"전방 거리: {front_distance} cm - 멈춤")
         motor1.stop()
         motor2.stop()
@@ -104,7 +110,10 @@ def check_front_and_stop():
         time.sleep(0.01)
         dynamic_right_turn()  # 우회전 시도
     else:
-        print(f"전방 거리: {front_distance} cm - 전진")
+        if front_distance is None:
+            print("전방 거리 데이터를 읽지 못했습니다.")
+        else:
+            print(f"전방 거리: {front_distance} cm - 전진")
         motor1.forward(40)
         motor2.forward(40)
         motor3.forward(40)
