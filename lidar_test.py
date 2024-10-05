@@ -1,7 +1,30 @@
 import os
 import sys
+import math
+import time
+import matplotlib.pyplot as plt
+from matplotlib.animation import FuncAnimation
+
 sys.path.append('/home/dodo/YDLidar-SDK/build/python')
 import ydlidar
+
+def update_scan(scan_data, laser):
+    r = laser.doProcessSimple(scan_data)
+    if r:
+        angles = []
+        distances = []
+        for point in scan_data.points:
+            angles.append(point.angle)
+            distances.append(point.range)
+        return angles, distances
+    else:
+        print("Failed to get Lidar Data.")
+        return [], []
+
+def animate(frame, laser, scan_data, plot):
+    angles, distances = update_scan(scan_data, laser)
+    plot.set_offsets([(math.cos(a) * d, math.sin(a) * d) for a, d in zip(angles, distances)])
+    return plot,
 
 if __name__ == "__main__":
     ydlidar.os_init()  # SDK 초기화
@@ -28,29 +51,15 @@ if __name__ == "__main__":
     ret = laser.initialize()
     if ret:
         ret = laser.turnOn()
-        scan = ydlidar.LaserScan()
+        scan_data = ydlidar.LaserScan()
 
-        # 스캔 데이터 수집
-        while ret and ydlidar.os_isOk():
-            r = laser.doProcessSimple(scan)
-            if r:
-                scan_time = scan.config.scan_time if scan.config.scan_time != 0 else 1.0
-                print(f"Scan received[{scan.stamp}]: {scan.points.size()} ranges at {1.0 / scan_time}Hz")
-                
-                # 정면 방향 거리를 확인 (-0.1 ~ 0.1 라디안 범위를 정면으로 간주)
-                front_distances = []
-                for point in scan.points:
-                    if -0.1 <= point.angle <= 0.1:
-                        front_distances.append(point.range)
-                    print(f"Angle: {point.angle:.2f} rad, Distance: {point.range:.2f} meters")
+        fig, ax = plt.subplots(subplot_kw={'projection': 'polar'})
+        plot = ax.scatter([], [], s=5)
 
-                if front_distances:
-                    average_front_distance = sum(front_distances) / len(front_distances)
-                    print(f"Average front distance: {average_front_distance:.2f} meters")
-                else:
-                    print("No front distance data available.")
-            else:
-                print("Failed to get Lidar Data.")
+        ax.set_ylim(0, 10)  # 거리의 범위를 미터 단위로 설정 (0~10m)
+        ani = FuncAnimation(fig, animate, fargs=(laser, scan_data, plot), interval=100)
+
+        plt.show()
 
         # Lidar 종료
         laser.turnOff()
