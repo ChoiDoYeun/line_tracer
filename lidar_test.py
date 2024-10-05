@@ -14,8 +14,10 @@ def update_scan(scan_data, laser):
         angles = []
         distances = []
         for point in scan_data.points:
-            angles.append(point.angle)
-            distances.append(point.range)
+            # 각도를 -30도(-0.5236 라디안)에서 +30도(0.5236 라디안) 사이로 제한
+            if -0.5236 <= point.angle <= 0.5236:
+                angles.append(point.angle)
+                distances.append(point.range)
         return angles, distances
     else:
         print("Failed to get Lidar Data.")
