@@ -146,7 +146,7 @@ if __name__ == "__main__":
 
             # 거리 임계값 설정 (필요에 따라 조정)
             threshold_front = 0.6  # 60cm
-            threshold_side = 0.15  # 15cm
+            threshold_side = 0.50  # 15cm
 
             # 우수법 로직 적용
             if right_dist > threshold_side:
