@@ -150,7 +150,7 @@ def lidar_thread(laser):
         else:
             with obstacle_lock:
                 obstacle_detected = False
-        time.sleep(0.01)  # 필요에 따라 조정
+        time.sleep(0.001)  # 필요에 따라 조정
 
 # 메인 제어 루프
 def main():
