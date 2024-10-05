@@ -22,6 +22,9 @@ left_distance = float('inf')
 right_distance = float('inf')
 obstacle_lock = threading.Lock()
 
+# 라이다 데이터 갱신 이벤트
+lidar_data_event = threading.Event()
+
 # MotorController 클래스
 class MotorController:
     def __init__(self, en, in1, in2):
