@@ -96,7 +96,7 @@ def sensor_read_thread():
         # 각도 변경 후 바로 다음 측정으로 이동
 
 # 장애물 감지 함수
-def is_obstacle_ahead(threshold=30):
+def is_obstacle_ahead(threshold=60):
     """전방에 장애물이 있는지 확인"""
     if front_distance is not None and front_distance <= threshold:
         return True
