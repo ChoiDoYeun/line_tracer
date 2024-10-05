@@ -34,9 +34,12 @@ if __name__ == "__main__":
         while ret and ydlidar.os_isOk():
             r = laser.doProcessSimple(scan)
             if r:
-                # scan_time이 0이면 기본값 1.0을 설정
                 scan_time = scan.config.scan_time if scan.config.scan_time != 0 else 1.0
                 print(f"Scan received[{scan.stamp}]: {scan.points.size()} ranges at {1.0 / scan_time}Hz")
+                
+                # 각 포인트의 거리 출력
+                for point in scan.points:
+                    print(f"Angle: {point.angle:.2f} rad, Distance: {point.range:.2f} meters")
             else:
                 print("Failed to get Lidar Data.")
 
