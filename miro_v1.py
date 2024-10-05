@@ -60,7 +60,7 @@ def set_angle(angle):
     """서보모터의 각도를 설정"""
     duty = angle / 18 + 2
     pwm.ChangeDutyCycle(duty)
-    time.sleep(0.5)
+    time.sleep(0.3)
 
 # 거리 측정 함수
 def read_distance():
@@ -79,6 +79,7 @@ def read_distance():
 def dynamic_right_turn():
     """동적으로 우회전을 수행하는 함수"""
     set_angle(0)  # 우측 각도 설정
+    time.sleep(0.2)
     right_distance = read_distance()
     
     if right_distance is not None and right_distance > 30:
