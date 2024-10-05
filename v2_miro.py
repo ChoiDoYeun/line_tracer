@@ -127,7 +127,7 @@ if __name__ == "__main__":
                     continue
 
                 # 정면과 좌측, 우측 거리 기준으로 행동 결정
-                if front_dist <= 0.45:  # 정면에 벽이 45cm 이내일 때 우회전 준비
+                if front_dist <= 0.6:  # 정면에 벽이 45cm 이내일 때 우회전 준비
                     print("정면에 벽 감지, 우회전 준비 중...")
                     motor1.stop()
                     motor2.stop()
@@ -135,7 +135,7 @@ if __name__ == "__main__":
                     motor4.stop()
 
                     # 우회전하며 정면이 1m 이상이 될 때까지 회전
-                    while front_dist <= 1.0:
+                    while front_dist <= 2.0:
                         print("우회전 중...")
                         dynamic_turn(motor1, motor2, 40, 40, "right")
                         dynamic_turn(motor3, motor4, 40, 40, "right")
