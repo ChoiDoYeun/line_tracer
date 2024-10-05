@@ -56,7 +56,6 @@ motor2 = MotorController(22, 23, 24)  # right front
 motor3 = MotorController(9, 10, 11)   # left back
 motor4 = MotorController(25, 8, 7)    # right back
 
-
 # 서보모터 제어 함수
 def set_angle(angle):
     """서보모터의 각도를 설정"""
@@ -75,22 +74,14 @@ def read_distance():
     else:
         return None
 
-# 최신 거리 값을 저장할 전역 변수
-latest_distance = None
+# 최신 우측 거리 값을 저장할 전역 변수
 latest_right_distance = None
 previous_right_distance = None
 
 # 센서 데이터를 지속적으로 읽어오는 스레드 함수
 def sensor_read_thread():
-    global latest_distance, latest_right_distance, previous_right_distance
+    global latest_right_distance, previous_right_distance
     while True:
-        # 전방 거리 측정
-        set_angle(90)  # 전방 각도 설정
-        time.sleep(0.1)
-        distance = read_distance()
-        if distance is not None:
-            latest_distance = distance
-
         # 우측 거리 측정
         set_angle(0)  # 우측 각도 설정
         time.sleep(0.1)
@@ -108,27 +99,25 @@ def initialize_sensor():
     ser.write(b'\x42\x57\x02\x00\x00\x00\x00\xff')  # 연속 모드 설정 명령
     time.sleep(0.1)
 
-# 우측 거리 변화율에 따른 동작 제어
+# 우측 거리 변화량에 따른 동작 제어
 def check_front_and_stop():
-    """우측 거리의 변화율을 모니터링하고, 급격한 증가 시 멈춤"""
-    # 우측 거리 변화율 계산
+    """우측 거리의 변화량을 모니터링하고, 변화량이 +50cm를 초과하면 멈춤"""
+    # 우측 거리 변화량 계산
     if latest_right_distance is not None and previous_right_distance is not None:
         delta_distance = latest_right_distance - previous_right_distance
-        time_interval = 0.1 + 0.1 + 0.01  # sensor_read_thread에서 우측 거리 측정 간격
-        rate_of_change = delta_distance / time_interval  # 변화율 계산
 
-        print(f"우측 거리 변화율: {rate_of_change} cm/s")
+        print(f"우측 거리 변화량: {delta_distance} cm")
 
-        # 변화율이 임계값을 초과하면 멈춤
-        threshold = 100  # 임계값 설정 (필요에 따라 조정)
-        if rate_of_change > threshold:
-            print("우측 거리의 변화율이 급격히 증가했습니다. 로봇을 멈춥니다.")
+        # 변화량이 +50cm를 초과하면 멈춤
+        threshold = 50  # 임계값 설정 (필요에 따라 조정)
+        if delta_distance > threshold:
+            print("우측 거리의 변화량이 +50cm를 초과했습니다. 로봇을 멈추고 우회전합니다.")
             motor1.stop()
             motor2.stop()
             motor3.stop()
             motor4.stop()
             time.sleep(0.1)
-            # 필요한 추가 동작 수행 (예: 회전, 후진 등)
+            dynamic_right_turn()  # 우회전 로직 호출
             return
         else:
             print("로봇 전진 중...")
@@ -144,6 +133,48 @@ def check_front_and_stop():
         motor4.forward(40)
 
     time.sleep(0.01)  # 메인 루프 주기 설정
+
+# 우회전 로직
+def dynamic_right_turn():
+    """동적으로 우회전을 수행하는 함수"""
+    max_turn_time = 5  # 최대 회전 시간 설정
+    start_time = time.time()
+
+    set_angle(90)  # 전방 각도 설정
+    time.sleep(0.1)  # 서보모터가 움직일 시간을 줌
+
+    while True:
+        # 전방 거리 측정
+        distance = read_distance()
+        if distance is not None:
+            print(f"전방 거리: {distance} cm")
+        else:
+            print("전방 거리 데이터를 읽지 못했습니다.")
+
+        # 전방 거리가 50cm 이하이면 우회전을 계속
+        if distance is not None and distance <= 50:
+            print("우회전 중...")
+            # 우회전 모터 동작
+            motor1.forward(30)
+            motor2.backward(30)
+            motor3.forward(30)
+            motor4.backward(30)
+        else:
+            print("전방 거리가 충분합니다. 회전을 멈춥니다.")
+            break
+
+        # 최대 회전 시간 체크
+        if time.time() - start_time > max_turn_time:
+            print("최대 회전 시간을 초과했습니다. 회전을 멈춥니다.")
+            break
+
+        time.sleep(0.01)  # 반복 주기 설정
+
+    # 모터 정지
+    motor1.stop()
+    motor2.stop()
+    motor3.stop()
+    motor4.stop()
 
 def main():
     """메인 실행 함수"""
