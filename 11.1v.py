@@ -7,7 +7,7 @@ import RPi.GPIO as GPIO
 # PID 상수
 Kp = 0.22
 Ki = 0.00
-Kd = 0.03
+Kd = 0.04
 
 # PID 제어 변수
 prev_error = 0.0
@@ -159,7 +159,7 @@ def main():
                 base_speed = 100  # 기준값 내에서 이동 속도 유지
                 pid_value = 0  # 보정값을 0으로 설정
             else:
-                base_speed = 0  # 임계 구간을 벗어나면 이동 정지
+                base_speed = 20  # 임계 구간을 벗어나면 이동 정지
                 pid_value = pid_control(diff, dt)
 
             # 속도 계산

@@ -7,9 +7,9 @@ import serial
 import threading
 
 # PID 상수
-Kp = 0.22
+Kp = 0.50
 Ki = 0.00
-Kd = 0.03
+Kd = 0.00
 
 # PID 제어 변수
 prev_error = 0.0
@@ -31,7 +31,7 @@ class MotorController:
         self.pwm.start(0)
 
     def set_speed(self, speed):
-        speed = max(min(speed, 60), -60)
+        speed = max(min(speed, 50), -50)
         self.pwm.ChangeDutyCycle(abs(speed))
 
     def forward(self, speed=40):
@@ -200,7 +200,7 @@ def main():
                 print("경고: 계산된 값이 NaN입니다.")
                 continue
 
-            if -60 <= diff <= 60:
+            if -50 <= diff <= 50:
                 base_speed = 100
                 pid_value = 0
             else:
