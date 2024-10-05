@@ -84,7 +84,7 @@ def sensor_read_thread():
     while True:
         # 우측 거리 측정
         set_angle(0)  # 우측 각도 설정
-        time.sleep(0.1)
+        time.sleep(0.01)
         distance = read_distance()
         if distance is not None:
             # 이전 우측 거리 값을 업데이트
