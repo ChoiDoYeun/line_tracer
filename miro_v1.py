@@ -101,7 +101,7 @@ def dynamic_right_turn():
             motor2.backward(30)
             motor3.forward(30)
             motor4.backward(30)
-            time.sleep(0.05)  # 반복 주기 설정
+            time.sleep(0.001)  # 반복 주기 설정
                 # 모터 정지
             motor1.stop()
             motor2.stop()
