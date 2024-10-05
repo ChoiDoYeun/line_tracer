@@ -1,8 +1,6 @@
 import os
 import sys
 import math
-import matplotlib.pyplot as plt
-from matplotlib.animation import FuncAnimation
 
 sys.path.append('/home/dodo/YDLidar-SDK/build/python')
 import ydlidar
@@ -10,26 +8,41 @@ import ydlidar
 def update_scan(scan_data, laser):
     r = laser.doProcessSimple(scan_data)
     if r:
-        angles = []
-        distances = []
-        for point in scan_data.points:
-            print(f"각도: {math.degrees(point.angle):.2f}°, 거리: {point.range:.2f} m")
-            if -0.5236 <= point.angle <= 0.5236:  # -30도에서 +30도
-                if 0.01 <= point.range <= 8.0:  # 거리 값이 0.01m ~ 8m 사이일 때만 유효한 데이터로 간주
-                    angles.append(point.angle)
-                    distances.append(point.range)
-                    if -0.01 <= point.angle <= 0.01:  # 0도 주변 데이터 출력
-                        print(f"0도 근처 데이터 -> 각도: {point.angle:.2f} rad, 거리: {point.range:.2f} meters")
+        left_angle = None
+        left_distance = float('inf')  # 초기값을 무한대 거리로 설정
+        right_angle = None
+        right_distance = float('inf')  # 초기값을 무한대 거리로 설정
 
-        return angles, distances
+        for point in scan_data.points:
+            degree_angle = math.degrees(point.angle)
+            if -30 <= degree_angle <= 30:  # -30도에서 +30도
+                if 0.01 <= point.range <= 8.0:  # 거리 값이 0.01m ~ 8m 사이일 때만 유효한 데이터로 간주
+                    # 좌측 감지
+                    if degree_angle < 0 and point.range < left_distance:
+                        left_angle = degree_angle  # 좌측 각도
+                        left_distance = point.range  # 좌측 거리
+
+                    # 우측 감지
+                    if degree_angle > 0 and point.range < right_distance:
+                        right_angle = degree_angle  # 우측 각도
+                        right_distance = point.range  # 우측 거리
+
+                    # 0도 근처 확인
+                    if -1 <= degree_angle <= 1:  # 0도 주변 데이터 출력
+                        print(f"0도 근처 데이터 -> 각도: {degree_angle:.2f}°, 거리: {point.range:.2f} meters")
+
+        if left_angle is not None:
+            print(f"좌측 감지 -> 각도: {left_angle:.2f}°, 거리: {left_distance * 100:.2f} cm")
+        else:
+            print("좌측에서 감지된 물체가 없습니다.")
+
+        if right_angle is not None:
+            print(f"우측 감지 -> 각도: {right_angle:.2f}°, 거리: {right_distance * 100:.2f} cm")
+        else:
+            print("우측에서 감지된 물체가 없습니다.")
+
     else:
         print("Failed to get Lidar Data.")
-        return [], []
-
-def animate(frame, laser, scan_data, plot):
-    angles, distances = update_scan(scan_data, laser)
-    plot.set_offsets([(math.cos(a) * d, math.sin(a) * d) for a, d in zip(angles, distances)])
-    return plot,
 
 if __name__ == "__main__":
     ydlidar.os_init()  # SDK 초기화
@@ -59,13 +72,8 @@ if __name__ == "__main__":
         ret = laser.turnOn()
         scan_data = ydlidar.LaserScan()
 
-        fig, ax = plt.subplots(subplot_kw={'projection': 'polar'})
-        plot = ax.scatter([], [], s=5)
-
-        ax.set_ylim(0, 8)  # 거리의 범위를 미터 단위로 설정 (0~8m)
-        ani = FuncAnimation(fig, animate, fargs=(laser, scan_data, plot), interval=100)
-
-        plt.show()
+        # 거리 데이터 출력
+        update_scan(scan_data, laser)
 
         # Lidar 종료
         laser.turnOff()
