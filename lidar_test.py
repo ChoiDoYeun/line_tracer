@@ -9,7 +9,7 @@ if lidar.Connect():
     gen = lidar.StartScanning()
     start_time = time.time()
     
-    while (time.time() - start_time) < :10  # 30초 동안 스캔
+    while (time.time() - start_time) < 30:  # 30초 동안 스캔
         data = next(gen)
         print(data)
     
