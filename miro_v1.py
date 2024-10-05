@@ -4,7 +4,7 @@ import serial
 
 # GPIO 핀 설정
 servo_pin = 4  # 서보모터를 연결할 GPIO 핀 번호
-ser = serial.Serial('/dev/serial0', baudrate=115200, timeout=0.001)
+ser = serial.Serial('/dev/serial0', baudrate=230400, timeout=0.001)  # 230400으로 통신 속도 증가
 
 # GPIO 모드 설정
 GPIO.setmode(GPIO.BCM)
@@ -67,7 +67,7 @@ def read_distance():
     """TF Luna 센서에서 거리 데이터를 읽어옴"""
     ser.reset_input_buffer()
     ser.write(b'\x42\x57\x02\x00\x00\x00\x01\x06')  # 데이터 요청 명령
-    time.sleep(0.2)
+    time.sleep(0.05)  # 대기 시간을 줄임
     response = ser.read(9)
     
     if len(response) == 9 and response[0] == 0x59 and response[1] == 0x59:
