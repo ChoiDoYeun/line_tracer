@@ -74,7 +74,7 @@ def read_distance():
         return None
 
 # 장애물 감지 함수
-def is_obstacle_ahead(threshold=30):
+def is_obstacle_ahead(threshold=90):
     """전방에 장애물이 있는지 확인"""
     set_angle(90)  # 서보모터를 전방으로 설정
     distance = read_distance()
