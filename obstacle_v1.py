@@ -99,7 +99,7 @@ def check_front_and_stop():
     """전방 거리를 확인하고, 장애물이 있으면 우회전 시도"""
     front_distance = latest_distance
 
-    if front_distance is not None and front_distance <= 50:
+    if front_distance is not None and front_distance <= 80:
         print(f"전방 거리: {front_distance} cm - 멈춤(장애물)")
         for motor in motors:
             motor.stop()
