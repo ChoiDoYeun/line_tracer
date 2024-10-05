@@ -93,7 +93,7 @@ def control_motors(left_speed, right_speed):
         motor2.backward(-right_speed)
         motor4.backward(-right_speed)
 
-# 이미지 처리 함수
+# 이미지 처리 함수 (선 감지)
 def process_image(frame):
     hls = cv2.cvtColor(frame, cv2.COLOR_BGR2HLS)
     s_channel = hls[:, :, 2]
@@ -169,12 +169,13 @@ def main():
     port = "/dev/ttyUSB0"
     for key, value in ports.items():
         port = value
+    # Lidar 설정
     laser.setlidaropt(ydlidar.LidarPropSerialPort, port)
-    laser.setlidaropt(ydlidar.LidarPropSerialBaudrate, 128000)  # 가능한 최대 보율로 설정
+    laser.setlidaropt(ydlidar.LidarPropSerialBaudrate, 115200)
     laser.setlidaropt(ydlidar.LidarPropLidarType, ydlidar.TYPE_TRIANGLE)
     laser.setlidaropt(ydlidar.LidarPropDeviceType, ydlidar.YDLIDAR_TYPE_SERIAL)
-    laser.setlidaropt(ydlidar.LidarPropScanFrequency, 10.0)  # 스캔 주파수 증가
-    laser.setlidaropt(ydlidar.LidarPropSampleRate, 5000)  # 샘플레이트 증가
+    laser.setlidaropt(ydlidar.LidarPropScanFrequency, 7.0)  # 권장 주파수로 설정
+    laser.setlidaropt(ydlidar.LidarPropSampleRate, 3000)  # 샘플레이트 유지
     laser.setlidaropt(ydlidar.LidarPropSingleChannel, True)
     ret = laser.initialize()
 
@@ -223,29 +224,4 @@ def main():
                     motor1.stop()
                     motor2.stop()
                     motor3.stop()
-                    motor4.stop()
-                    break  # 필요에 따라 조정
-
-            control_motors(left_motor_speed, right_motor_speed)
-
-            if cv2.waitKey(1) & 0xFF == ord('q'):
-                break
-
-    finally:
-        motor1.stop()
-        motor2.stop()
-        motor3.stop()
-        motor4.stop()
-        motor1.cleanup()
-        motor2.cleanup()
-        motor3.cleanup()
-        motor4.cleanup()
-        laser.turnOff()
-        laser.disconnecting()
-
-    cap.release()
-    cv2.destroyAllWindows()
-
-if __name__ == "__main__":
-    GPIO.setmode(GPIO.BCM)
-    main()
+                    motor4.
