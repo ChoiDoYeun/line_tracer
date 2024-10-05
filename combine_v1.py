@@ -150,7 +150,7 @@ def lidar_thread(laser):
         else:
             with obstacle_lock:
                 obstacle_detected = False
-        time.sleep(0.01)  # 필요에 따라 조정
+        time.sleep(0.01)  # 주기 조정
 
 # 메인 제어 루프
 def main():
@@ -174,8 +174,8 @@ def main():
     laser.setlidaropt(ydlidar.LidarPropSerialBaudrate, 115200)
     laser.setlidaropt(ydlidar.LidarPropLidarType, ydlidar.TYPE_TRIANGLE)
     laser.setlidaropt(ydlidar.LidarPropDeviceType, ydlidar.YDLIDAR_TYPE_SERIAL)
-    laser.setlidaropt(ydlidar.LidarPropScanFrequency, 7.0)  # 권장 주파수로 설정
-    laser.setlidaropt(ydlidar.LidarPropSampleRate, 3000)  # 샘플레이트 유지
+    laser.setlidaropt(ydlidar.LidarPropScanFrequency, 10.0)  # 주파수 증가
+    laser.setlidaropt(ydlidar.LidarPropSampleRate, 5000)  # 샘플레이트 증가
     laser.setlidaropt(ydlidar.LidarPropSingleChannel, True)
     ret = laser.initialize()
 
