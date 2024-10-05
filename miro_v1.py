@@ -101,7 +101,13 @@ def dynamic_right_turn():
             motor2.backward(30)
             motor3.forward(30)
             motor4.backward(30)
-            time.sleep(0.01)  # 반복 주기 설정
+            time.sleep(0.05)  # 반복 주기 설정
+                # 모터 정지
+            motor1.stop()
+            motor2.stop()
+            motor3.stop()
+            motor4.stop()
+            time.sleep(0.001)  # 반복 주기 설정
         else:
             print("전방 거리가 충분합니다. 회전을 멈춥니다.")
             break
