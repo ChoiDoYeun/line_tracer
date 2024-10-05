@@ -142,32 +142,39 @@ def lidar_thread(laser):
     global obstacle_detected, left_distance, right_distance
     scan_data = ydlidar.LaserScan()
     while True:
-        r = laser.doProcessSimple(scan_data)
-        if r:
-            front_distance = float('inf')
-            left_distance_temp = float('inf')
-            right_distance_temp = float('inf')
-            for point in scan_data.points:
-                degree_angle = math.degrees(point.angle)
-                if 0.01 <= point.range <= 8.0:
-                    # 정면 감지
-                    if -5 <= degree_angle <= 5:
-                        front_distance = min(front_distance, point.range)
-                    # 좌측 감지 (90도)
-                    if 85 <= degree_angle <= 95:
-                        left_distance_temp = min(left_distance_temp, point.range)
-                    # 우측 감지 (-90도)
-                    if -95 <= degree_angle <= -85:
-                        right_distance_temp = min(right_distance_temp, point.range)
-            with obstacle_lock:
-                obstacle_detected = front_distance <= 0.8  # 80cm 이내 장애물 감지
-                left_distance = left_distance_temp
-                right_distance = right_distance_temp
-                lidar_data_event.set()  # 라이다 데이터 갱신 이벤트 설정
-        else:
-            with obstacle_lock:
-                obstacle_detected = False
-        time.sleep(0.01)  # 주기 조정
+        try:
+            r = laser.doProcessSimple(scan_data)
+            if r:
+                front_distance = float('inf')
+                left_distance_temp = float('inf')
+                right_distance_temp = float('inf')
+                for point in scan_data.points:
+                    degree_angle = math.degrees(point.angle)
+                    if 0.01 <= point.range <= 8.0:
+                        # 정면 감지
+                        if -5 <= degree_angle <= 5:
+                            front_distance = min(front_distance, point.range)
+                        # 좌측 감지 (90도)
+                        if 85 <= degree_angle <= 95:
+                            left_distance_temp = min(left_distance_temp, point.range)
+                        # 우측 감지 (-90도)
+                        if -95 <= degree_angle <= -85:
+                            right_distance_temp = min(right_distance_temp, point.range)
+                with obstacle_lock:
+                    obstacle_detected = front_distance <= 0.8  # 80cm 이내 장애물 감지
+                    left_distance = left_distance_temp
+                    right_distance = right_distance_temp
+                    lidar_data_event.set()  # 라이다 데이터 갱신 이벤트 설정
+            else:
+                print("라이다 데이터 수집 실패")
+                with obstacle_lock:
+                    obstacle_detected = False
+            time.sleep(0.01)  # 주기 조정
+        except Exception as e:
+            print("라이다 스레드 예외 발생:", e)
+            traceback.print_exc()
+            # 필요에 따라 여기서 laser를 재초기화하는 로직을 추가할 수 있습니다.
+            time.sleep(1)  # 예외 발생 시 잠시 대기
 
 # 장애물 회피 동작 함수
 def avoid_obstacle():
@@ -195,7 +202,9 @@ def avoid_obstacle():
 
     # 라이다 데이터 갱신 대기
     print("라이다 데이터 갱신 대기 중...")
-    lidar_data_event.wait(timeout=1.0)  # 최대 1초 대기
+    if not lidar_data_event.wait(timeout=2.0):  # 최대 2초 대기
+        print("라이다 데이터 갱신 시간 초과")
+        return  # 데이터 갱신이 안되면 함수 종료
     lidar_data_event.clear()  # 이벤트 초기화
 
     with obstacle_lock:
@@ -250,6 +259,9 @@ def main():
 
     if ret:
         ret = laser.turnOn()
+        if not ret:
+            print("라이다를 켤 수 없습니다.")
+            return
         # 라이다 스레드 시작
         lidar_thread_instance = threading.Thread(target=lidar_thread, args=(laser,), daemon=True)
         lidar_thread_instance.start()
@@ -298,8 +310,7 @@ def main():
 
                     # 회피 동작 수행
                     avoid_obstacle()
-                    # 회피 후 LIDAR 데이터 이벤트 초기화
-                    lidar_data_event.clear()
+                    continue  # 회피 동작 후 다음 루프로 이동
 
             control_motors(left_motor_speed, right_motor_speed)
 
