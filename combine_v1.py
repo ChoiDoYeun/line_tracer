@@ -168,11 +168,11 @@ def avoid_obstacle():
     # 최초로 좌우측 거리를 비교하여 회피 방향 결정
     if left_distance > right_distance:
         print("좌측으로 회피")
-        control_motors(50, 20)  # 좌측으로 회피
+        control_motors(50, -50)  # 좌측으로 회피
         time.sleep(1)  # 일정 시간 이동
     else:
         print("우측으로 회피")
-        control_motors(20, 50)  # 우측으로 회피
+        control_motors(-50, 50)  # 우측으로 회피
         time.sleep(1)  # 일정 시간 이동
 
     # 이동 후 다시 좌우측 거리 재확인
