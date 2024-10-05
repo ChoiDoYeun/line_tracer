@@ -4,6 +4,7 @@ import time
 import math
 import RPi.GPIO as GPIO
 import sys
+import threading
 import ydlidar
 
 # PID 상수
@@ -14,6 +15,10 @@ Kd = 0.04
 # PID 제어 변수
 prev_error = 0.0
 integral = 0.0
+
+# 장애물 감지 변수
+obstacle_detected = False
+obstacle_lock = threading.Lock()
 
 # MotorController 클래스
 class MotorController:
@@ -127,19 +132,25 @@ def process_image(frame):
 
     return line_center_x, diff
 
-# 라이다 거리 측정 함수
-def check_obstacle(laser, scan_data):
-    r = laser.doProcessSimple(scan_data)
-    if r:
-        front_distance = float('inf')
-        for point in scan_data.points:
-            degree_angle = math.degrees(point.angle)
-            if 0.01 <= point.range <= 8.0:  # 유효한 거리 데이터
-                if -15 <= degree_angle <= 15:  # 0도 근처 (정면)
-                    front_distance = min(front_distance, point.range)
-        if front_distance <= 0.3:  # 30cm 이내에 장애물 감지
-            return True
-    return False
+# 라이다 데이터 처리 스레드 함수
+def lidar_thread(laser):
+    global obstacle_detected
+    scan_data = ydlidar.LaserScan()
+    while True:
+        r = laser.doProcessSimple(scan_data)
+        if r:
+            front_distance = float('inf')
+            for point in scan_data.points:
+                degree_angle = math.degrees(point.angle)
+                if 0.01 <= point.range <= 8.0:
+                    if -5 <= degree_angle <= 5:  # 정면 각도 범위 확대
+                        front_distance = min(front_distance, point.range)
+            with obstacle_lock:
+                obstacle_detected = front_distance <= 0.3  # 30cm 이내
+        else:
+            with obstacle_lock:
+                obstacle_detected = False
+        time.sleep(0.01)  # 필요에 따라 조정
 
 # 메인 제어 루프
 def main():
@@ -159,17 +170,22 @@ def main():
     for key, value in ports.items():
         port = value
     laser.setlidaropt(ydlidar.LidarPropSerialPort, port)
-    laser.setlidaropt(ydlidar.LidarPropSerialBaudrate, 115200)
+    laser.setlidaropt(ydlidar.LidarPropSerialBaudrate, 128000)  # 가능한 최대 보율로 설정
     laser.setlidaropt(ydlidar.LidarPropLidarType, ydlidar.TYPE_TRIANGLE)
     laser.setlidaropt(ydlidar.LidarPropDeviceType, ydlidar.YDLIDAR_TYPE_SERIAL)
-    laser.setlidaropt(ydlidar.LidarPropScanFrequency, 7.0)
-    laser.setlidaropt(ydlidar.LidarPropSampleRate, 3000)
+    laser.setlidaropt(ydlidar.LidarPropScanFrequency, 10.0)  # 스캔 주파수 증가
+    laser.setlidaropt(ydlidar.LidarPropSampleRate, 5000)  # 샘플레이트 증가
     laser.setlidaropt(ydlidar.LidarPropSingleChannel, True)
     ret = laser.initialize()
 
     if ret:
         ret = laser.turnOn()
-        scan_data = ydlidar.LaserScan()
+        # 라이다 스레드 시작
+        lidar_thread_instance = threading.Thread(target=lidar_thread, args=(laser,), daemon=True)
+        lidar_thread_instance.start()
+    else:
+        print("라이다를 초기화할 수 없습니다.")
+        return
 
     prev_time = time.time()
 
@@ -200,14 +216,15 @@ def main():
             left_motor_speed = base_speed + pid_value
             right_motor_speed = base_speed - pid_value
 
-            # 장애물 감지
-            if check_obstacle(laser, scan_data):
-                print("장애물 감지, 멈춤")
-                motor1.stop()
-                motor2.stop()
-                motor3.stop()
-                motor4.stop()
-                break
+            # 장애물 감지 확인
+            with obstacle_lock:
+                if obstacle_detected:
+                    print("장애물 감지, 멈춤")
+                    motor1.stop()
+                    motor2.stop()
+                    motor3.stop()
+                    motor4.stop()
+                    break  # 필요에 따라 조정
 
             control_motors(left_motor_speed, right_motor_speed)
 
