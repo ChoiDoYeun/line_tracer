@@ -142,7 +142,7 @@ if __name__ == "__main__":
                         time.sleep(0.001)  # 잠시 대기 후 정면 거리 업데이트
                         front_dist, _, _ = update_scan(scan_data, laser)
 
-                elif left_dist <= 0.3:  # 좌측에 벽이 30cm 이내일 때 우회전
+                elif left_dist <= 0.15:  # 좌측에 벽이 30cm 이내일 때 우회전
                     print("좌측에 벽이 가까움, 우회전 중...")
                     motor1.stop()
                     motor2.stop()
@@ -154,7 +154,7 @@ if __name__ == "__main__":
                     dynamic_turn(motor3, motor4, 40, 40, "right")
                     time.sleep(0.1)
 
-                elif right_dist <= 0.3:  # 우측에 벽이 30cm 이내일 때 좌회전
+                elif right_dist <= 0.15:  # 우측에 벽이 30cm 이내일 때 좌회전
                     print("우측에 벽이 가까움, 좌회전 중...")
                     motor1.stop()
                     motor2.stop()
