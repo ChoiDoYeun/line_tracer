@@ -3,10 +3,7 @@ import numpy as np
 import time
 import math
 import RPi.GPIO as GPIO
-import sys
-import threading
 import ydlidar
-import traceback
 
 # PID 상수
 Kp = 0.22
@@ -21,10 +18,7 @@ integral = 0.0
 obstacle_detected = False
 left_distance = float('inf')
 right_distance = float('inf')
-obstacle_lock = threading.Lock()
 
-# 라이다 데이터 갱신 이벤트
-lidar_data_event = threading.Event()
 
 # MotorController 클래스
 class MotorController:
@@ -138,52 +132,9 @@ def process_image(frame):
 
     return line_center_x, diff
 
-# 라이다 데이터 처리 스레드 함수
-def lidar_thread(laser):
-    global obstacle_detected, left_distance, right_distance
-    scan_data = ydlidar.LaserScan()
-    while True:
-        try:
-            r = laser.doProcessSimple(scan_data)
-            if r:
-                front_distance = float('inf')
-                left_distance_temp = float('inf')
-                right_distance_temp = float('inf')
-                for point in scan_data.points:
-                    degree_angle = math.degrees(point.angle)
-                    if 0.01 <= point.range <= 8.0:
-                        # 정면 감지
-                        if -5 <= degree_angle <= 5:
-                            front_distance = min(front_distance, point.range)
-                        # 좌측 감지 (90도)
-                        if 85 <= degree_angle <= 95:
-                            left_distance_temp = min(left_distance_temp, point.range)
-                        # 우측 감지 (-90도)
-                        if -95 <= degree_angle <= -85:
-                            right_distance_temp = min(right_distance_temp, point.range)
-                with obstacle_lock:
-                    obstacle_detected = front_distance <= 0.8  # 80cm 이내 장애물 감지
-                    left_distance = left_distance_temp
-                    right_distance = right_distance_temp
-                    lidar_data_event.set()  # 라이다 데이터 갱신 이벤트 설정
-            else:
-                print("라이다 데이터 수집 실패. 라이다 재초기화 중...")
-                # 라이다 재초기화 코드
-                laser.turnOff()
-                laser.disconnecting()
-                time.sleep(1)  # 잠시 대기 후 다시 시도
-                laser.initialize()
-                laser.turnOn()
-                print("라이다 재초기화 완료")
-            time.sleep(0.01)  # 주기 조정
-        except Exception as e:
-            print("라이다 스레드 예외 발생:", e)
-            traceback.print_exc()
-            time.sleep(1)  # 예외 발생 시 잠시 대기
-
 # 장애물 회피 동작 함수
 def avoid_obstacle():
-    global left_distance, right_distance  # 전역 변수로 선언
+    global left_distance, right_distance, obstacle_detected
 
     # 최초로 좌우측 거리를 비교하여 회피 방향 결정
     if left_distance > right_distance:
@@ -194,7 +145,7 @@ def avoid_obstacle():
     else:
         print("우측으로 회피")
         control_motors(50, -50)  # 우측으로 회피
-        time.sleep(0.75)  # 일정 시간 이동
+        time.sleep(0.75)
         print("우측 최초 회피 끝")
 
     # 회피 후 모터 멈춤
@@ -202,41 +153,36 @@ def avoid_obstacle():
     motor2.stop()
     motor3.stop()
     motor4.stop()
-
     time.sleep(0.1)  # 정지 후 잠시 대기
 
-    # 라이다 데이터 갱신 대기
-    print("라이다 데이터 갱신 대기 중...")
-    if not lidar_data_event.wait(timeout=2.0):  # 최대 2초 대기
-        print("라이다 데이터 갱신 시간 초과")
-        return  # 데이터 갱신이 안되면 함수 종료
-    lidar_data_event.clear()  # 이벤트 초기화
+    # 메인 루프에서 라이다 데이터가 업데이트되므로, 여기서는 바로 변수 사용
+    print(f"갱신된 좌측 거리: {left_distance} m, 갱신된 우측 거리: {right_distance} m")
 
-    with obstacle_lock:
-        print(f"갱신된 좌측 거리: {left_distance} m, 갱신된 우측 거리: {right_distance} m")
-
-    # 갱신된 거리 데이터를 기반으로 추가 회피 동작
-    if left_distance > right_distance:
-        print("계속 좌측으로 회피")
-        control_motors(-50, 50)  # 좌측 회피 계속
-        time.sleep(0.25)  # 일정 시간 이동
-        print("좌측 재 회피 끝")
+    # 장애물이 여전히 감지되면 추가 회피 수행
+    if obstacle_detected:
+        print("장애물이 여전히 감지됨, 추가 회피 수행")
+        if left_distance > right_distance:
+            print("계속 좌측으로 회피")
+            control_motors(-50, 50)
+            time.sleep(0.5)
+            print("좌측 재 회피 끝")
+        else:
+            print("우측으로 전환하여 회피")
+            control_motors(50, -50)
+            time.sleep(0.5)
+            print("우측 재 회피 끝")
     else:
-        print("우측으로 전환")
-        control_motors(50, -50)  # 우측 회피로 전환
-        time.sleep(0.25)  # 일정 시간 이동
-        print("우측 재 회피 끝")
+        print("장애물이 제거됨, 라인 추종 재개")
 
+    # 회피 후 모터 멈춤
     motor1.stop()
     motor2.stop()
     motor3.stop()
     motor4.stop()
-    time.sleep(0.25)  # 회피 후 잠시 대기
+    time.sleep(0.1)
 
-# 메인 제어 루프
 def main():
-    global laser  # laser 변수를 전역 변수로 선언
-
+    # 카메라 초기화
     cap = cv2.VideoCapture(0, cv2.CAP_V4L2)
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, 424)
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 240)
@@ -245,20 +191,20 @@ def main():
         print("카메라를 열 수 없습니다.")
         return
 
-    # Lidar 설정
+    # 라이다 초기화
     ydlidar.os_init()
-    laser = ydlidar.CYdLidar()  # 전역 변수 laser 초기화
+    laser = ydlidar.CYdLidar()
     ports = ydlidar.lidarPortList()
     port = "/dev/ttyUSB0"
     for key, value in ports.items():
         port = value
-    # 기존 라이다 설정 유지
+
     laser.setlidaropt(ydlidar.LidarPropSerialPort, port)
     laser.setlidaropt(ydlidar.LidarPropSerialBaudrate, 115200)
     laser.setlidaropt(ydlidar.LidarPropLidarType, ydlidar.TYPE_TRIANGLE)
     laser.setlidaropt(ydlidar.LidarPropDeviceType, ydlidar.YDLIDAR_TYPE_SERIAL)
-    laser.setlidaropt(ydlidar.LidarPropScanFrequency, 7.0)  # 권장 주파수로 설정
-    laser.setlidaropt(ydlidar.LidarPropSampleRate, 3000)  # 샘플레이트 유지
+    laser.setlidaropt(ydlidar.LidarPropScanFrequency, 7.0)
+    laser.setlidaropt(ydlidar.LidarPropSampleRate, 3000)
     laser.setlidaropt(ydlidar.LidarPropSingleChannel, True)
     ret = laser.initialize()
 
@@ -267,9 +213,6 @@ def main():
         if not ret:
             print("라이다를 켤 수 없습니다.")
             return
-        # 라이다 스레드 시작
-        lidar_thread_instance = threading.Thread(target=lidar_thread, args=(laser,), daemon=True)
-        lidar_thread_instance.start()
     else:
         print("라이다를 초기화할 수 없습니다.")
         return
@@ -303,26 +246,53 @@ def main():
             left_motor_speed = base_speed + pid_value
             right_motor_speed = base_speed - pid_value
 
+            # 라이다 데이터 처리
+            scan_data = ydlidar.LaserScan()
+            r = laser.doProcessSimple(scan_data)
+            if r:
+                front_distance = float('inf')
+                left_distance_temp = float('inf')
+                right_distance_temp = float('inf')
+                for point in scan_data.points:
+                    degree_angle = math.degrees(point.angle)
+                    if 0.01 <= point.range <= 8.0:
+                        # 정면 감지
+                        if -5 <= degree_angle <= 5:
+                            front_distance = min(front_distance, point.range)
+                        # 좌측 감지 (90도)
+                        if 85 <= degree_angle <= 95:
+                            left_distance_temp = min(left_distance_temp, point.range)
+                        # 우측 감지 (-90도)
+                        if -95 <= degree_angle <= -85:
+                            right_distance_temp = min(right_distance_temp, point.range)
+                obstacle_detected = front_distance <= 0.8  # 80cm 이내 장애물 감지
+                left_distance = left_distance_temp
+                right_distance = right_distance_temp
+            else:
+                print("라이다 데이터 수집 실패")
+                obstacle_detected = False
+
             # 장애물 감지 확인
-            with obstacle_lock:
-                if obstacle_detected:
-                    print("장애물 감지, 멈춤")
-                    motor1.stop()
-                    motor2.stop()
-                    motor3.stop()
-                    motor4.stop()
-                    time.sleep(0.5)
+            if obstacle_detected:
+                print("장애물 감지, 멈춤")
+                motor1.stop()
+                motor2.stop()
+                motor3.stop()
+                motor4.stop()
+                time.sleep(0.5)
 
-                    # 회피 동작 수행
-                    avoid_obstacle()
-                    continue  # 회피 동작 후 다음 루프로 이동
+                # 회피 동작 수행
+                avoid_obstacle()
+                continue  # 다음 루프로 이동
 
+            # 모터 제어
             control_motors(left_motor_speed, right_motor_speed)
 
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
 
     finally:
+        # 종료 시 자원 해제
         motor1.stop()
         motor2.stop()
         motor3.stop()
@@ -333,9 +303,8 @@ def main():
         motor4.cleanup()
         laser.turnOff()
         laser.disconnecting()
-
-    cap.release()
-    cv2.destroyAllWindows()
+        cap.release()
+        cv2.destroyAllWindows()
 
 if __name__ == "__main__":
     GPIO.setmode(GPIO.BCM)
