@@ -1,21 +1,23 @@
 import os
 import sys
+import time
+
+# YDLidar-SDK 경로 추가
 sys.path.append('/home/dodo/YDLidar-SDK/build/python')
 import ydlidar
-import time
 
 def main():
     # LiDAR 초기화
-    lidar = ydlidar()
+    lidar = ydlidar.CYdLidar()
 
     # LiDAR 설정
-    port = "/dev/ttyUSB0"  # 포트 설정
-    lidar.setlidaropt(CYdLidar.LidarPropSerialPort, port)
-    lidar.setlidaropt(CYdLidar.LidarPropSerialBaudrate, 115200)
-    lidar.setlidaropt(CYdLidar.LidarPropLidarType, 1)  # Type 1: X2, X4, etc.
-    lidar.setlidaropt(CYdLidar.LidarPropDeviceType, 0)
-    lidar.setlidaropt(CYdLidar.LidarPropSampleRate, 5)
-    lidar.setlidaropt(CYdLidar.LidarPropScanFrequency, 7.0)
+    port = "/dev/ttyUSB0"  # 포트 설정, 필요에 따라 수정
+    lidar.setlidaropt(ydlidar.LidarPropSerialPort, port)
+    lidar.setlidaropt(ydlidar.LidarPropSerialBaudrate, 115200)
+    lidar.setlidaropt(ydlidar.LidarPropLidarType, 1)  # LiDAR 타입 (X2는 1)
+    lidar.setlidaropt(ydlidar.LidarPropDeviceType, 0)
+    lidar.setlidaropt(ydlidar.LidarPropSampleRate, 5)
+    lidar.setlidaropt(ydlidar.LidarPropScanFrequency, 7.0)
 
     # LiDAR 연결 및 시작
     if not lidar.initialize():
