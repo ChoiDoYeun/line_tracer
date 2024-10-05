@@ -1,6 +1,7 @@
 import RPi.GPIO as GPIO
 import time
 import serial
+import threading
 
 # GPIO 핀 설정
 servo_pin = 4  # 서보모터를 연결할 GPIO 핀 번호
