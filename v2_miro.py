@@ -163,17 +163,17 @@ if __name__ == "__main__":
             # 잠시 대기
             time.sleep(0.1)
 
-        except KeyboardInterrupt:
-            # 정지 및 정리
-            motor1.stop()
-            motor2.stop()
-            motor3.stop()
-            motor4.stop()
-            motor1.cleanup()
-            motor2.cleanup()
-            motor3.cleanup()
-            motor4.cleanup()
-
-        # Lidar 종료
-        laser.turnOff()
+ except KeyboardInterrupt:
+    # 정지 및 정리
+    motor1.stop()
+    motor2.stop()
+    motor3.stop()
+    motor4.stop()
+    motor1.cleanup()
+    motor2.cleanup()
+    motor3.cleanup()
+    motor4.cleanup()
+    
+    # Lidar 종료
+    laser.turnOff()
     laser.disconnecting()
