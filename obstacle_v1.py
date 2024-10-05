@@ -15,7 +15,7 @@ GPIO.setup(servo_pin, GPIO.OUT)
 pwm = GPIO.PWM(servo_pin, 50)
 pwm.start(0)
 
-# MotorController 클래스 정의
+# MotorController 클래스 정의 (이전 코드와 동일)
 class MotorController:
     def __init__(self, en, in1, in2):
         self.en = en
@@ -59,13 +59,11 @@ def set_angle(angle):
     """서보모터의 각도를 설정"""
     duty = angle / 18 + 2
     pwm.ChangeDutyCycle(duty)
-    time.sleep(0.2)  # 서보모터가 각도 변경 후 움직일 시간을 줌
+    # 서보모터가 이동하는 동안 프로그램이 멈추지 않도록 대기 시간을 제거하거나 최소화
 
 # 거리 측정 함수
 def read_distance():
     """TF Luna 센서에서 거리 데이터를 읽어옴"""
-    ser.reset_input_buffer()  # 입력 버퍼 초기화
-    ser.write(b'\x42\x57\x02\x00\x00\x00\x01\x06')  # 데이터 요청 명령
     response = ser.read(9)
     if len(response) == 9 and response[0] == 0x59 and response[1] == 0x59:
         distance = response[2] + response[3] * 256
@@ -73,26 +71,41 @@ def read_distance():
     else:
         return None
 
+# 전역 변수 설정
+front_distance = None
+left_distance = None
+right_distance = None
+
+# 센서 데이터를 지속적으로 읽어오는 스레드 함수
+def sensor_read_thread():
+    global front_distance, left_distance, right_distance
+    angle_positions = [90, 45, 135]  # 전방, 우측, 좌측 각도
+    index = 0
+    while True:
+        angle = angle_positions[index]
+        set_angle(angle)
+        time.sleep(0.05)  # 최소한의 대기 시간
+        distance = read_distance()
+        if angle == 90:
+            front_distance = distance
+        elif angle == 45:
+            right_distance = distance
+        elif angle == 135:
+            left_distance = distance
+        index = (index + 1) % len(angle_positions)
+        # 각도 변경 후 바로 다음 측정으로 이동
+
 # 장애물 감지 함수
-def is_obstacle_ahead(threshold=90):
+def is_obstacle_ahead(threshold=30):
     """전방에 장애물이 있는지 확인"""
-    set_angle(90)  # 서보모터를 전방으로 설정
-    distance = read_distance()
-    if distance is not None and distance <= threshold:
+    if front_distance is not None and front_distance <= threshold:
         return True
     else:
         return False
 
 def find_clear_direction(threshold=30):
     """장애물이 없는 방향을 탐색"""
-    # 좌측 확인
-    set_angle(180)
-    left_distance = read_distance()
-    # 우측 확인
-    set_angle(0)
-    right_distance = read_distance()
-
-    # 장애물이 없는 방향 반환
+    # 좌우 거리 비교
     if left_distance is not None and left_distance > threshold:
         return 'left'
     elif right_distance is not None and right_distance > threshold:
@@ -103,6 +116,7 @@ def find_clear_direction(threshold=30):
 # 장애물 회피 함수
 def avoid_obstacle(direction):
     """장애물을 회피하는 동작"""
+    print(f"{direction} 방향으로 회피합니다.")
     if direction == 'left':
         # 좌회전
         motors[0].backward(30)
@@ -132,8 +146,13 @@ def stop_robot():
     for motor in motors:
         motor.stop()
 
-# 장애물 감지 및 회피 로직
+# 메인 함수
 def main():
+    # 센서 읽기 스레드 시작
+    sensor_thread = threading.Thread(target=sensor_read_thread)
+    sensor_thread.daemon = True
+    sensor_thread.start()
+
     try:
         while True:
             if is_obstacle_ahead(threshold=30):
@@ -148,12 +167,12 @@ def main():
             else:
                 print("전진 중...")
                 move_forward()
-            time.sleep(0.1)
-
+            time.sleep(0.05)  # 메인 루프 주기 설정
     except KeyboardInterrupt:
         print("프로그램 종료")
     finally:
         stop_robot()
+        pwm.stop()
         GPIO.cleanup()
 
 if __name__ == "__main__":
