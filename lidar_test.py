@@ -1,6 +1,6 @@
 import os
 import sys
-sys.path.append('/home/dodo/YDLidar-SDK/build/lib.linux-aarch64-cpython-311')
+sys.path.append('/home/dodo/YDLidar-SDK/build/python')
 import ydlidar
 
 if __name__ == "__main__":
