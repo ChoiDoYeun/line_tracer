@@ -110,7 +110,7 @@ def dynamic_right_turn():
             print("최대 회전 시간을 초과했습니다. 회전을 멈춥니다.")
             break
 
-        time.sleep(0.01)  # 반복 주기 설정
+        time.sleep(0.001)  # 반복 주기 설정
 
     # 모터 정지
     motor1.stop()
