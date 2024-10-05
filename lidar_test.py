@@ -2,42 +2,49 @@ import os
 import sys
 sys.path.append('/home/dodo/YDLidar-SDK/build/python')
 import ydlidar
+import time
+
+def main():
+    # LiDAR 초기화
+    lidar = CYdLidar()
+
+    # LiDAR 설정
+    port = "/dev/ttyUSB0"  # 포트 설정
+    lidar.setlidaropt(CYdLidar.LidarPropSerialPort, port)
+    lidar.setlidaropt(CYdLidar.LidarPropSerialBaudrate, 115200)
+    lidar.setlidaropt(CYdLidar.LidarPropLidarType, 1)  # Type 1: X2, X4, etc.
+    lidar.setlidaropt(CYdLidar.LidarPropDeviceType, 0)
+    lidar.setlidaropt(CYdLidar.LidarPropSampleRate, 5)
+    lidar.setlidaropt(CYdLidar.LidarPropScanFrequency, 7.0)
+
+    # LiDAR 연결 및 시작
+    if not lidar.initialize():
+        print("LiDAR 초기화 실패")
+        return
+
+    if not lidar.turnOn():
+        print("LiDAR 시작 실패")
+        return
+
+    print("LiDAR가 시작되었습니다. Ctrl+C를 눌러 종료하십시오.")
+
+    try:
+        while True:
+            # 스캔 데이터 가져오기
+            scan = lidar.doProcessSimple(scan_time=0.1)
+            if scan:
+                for point in scan.points:
+                    # 각도와 거리 정보 출력 (거리: meter 단위)
+                    print(f"Angle: {point.angle}, Distance: {point.range}")
+            time.sleep(0.1)
+
+    except KeyboardInterrupt:
+        # Ctrl+C로 종료
+        print("LiDAR 종료 중...")
+
+    # LiDAR 종료
+    lidar.turnOff()
+    lidar.disconnecting()
 
 if __name__ == "__main__":
-    ydlidar.os_init()  # 초기화
-    laser = ydlidar.CYdLidar()
-    ports = ydlidar.lidarPortList()
-    
-    # 사용 가능한 포트를 가져오기
-    port = "/dev/ttyUSB0"
-    for key, value in ports.items():
-        port = value
-    
-    # Lidar 설정
-    laser.setlidaropt(ydlidar.LidarPropSerialPort, port)
-    laser.setlidaropt(ydlidar.LidarPropSerialBaudrate, 115200)
-    laser.setlidaropt(ydlidar.LidarPropLidarType, ydlidar.TYPE_TOF)
-    laser.setlidaropt(ydlidar.LidarPropDeviceType, ydlidar.YDLIDAR_TYPE_SERIAL)
-    laser.setlidaropt(ydlidar.LidarPropScanFrequency, 10.0)
-    laser.setlidaropt(ydlidar.LidarPropSampleRate, 20)
-    
-    # X2 모델의 경우 단방향 통신이므로 SingleChannel을 True로 설정
-    laser.setlidaropt(ydlidar.LidarPropSingleChannel, True)
-
-    # 초기화
-    ret = laser.initialize()
-    if ret:
-        ret = laser.turnOn()
-        scan = ydlidar.LaserScan()
-        
-        # 스캔 데이터를 반복해서 수집
-        while ret and ydlidar.os_isOk():
-            r = laser.doProcessSimple(scan)
-            if r:
-                print(f"Scan received[{scan.stamp}]: {scan.points.size()} ranges at {1.0/scan.config.scan_time}Hz")
-            else:
-                print("Failed to get Lidar Data.")
-        
-        # Lidar 종료
-        laser.turnOff()
-    laser.disconnecting()
+    main()
