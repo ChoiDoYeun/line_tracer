@@ -81,33 +81,21 @@ def dynamic_right_turn():
     set_angle(0)  # 우측 각도 설정
     right_distance = read_distance()
     
-    if right_distance:
-        while right_distance <= 20:  # 우회전 중 거리 유지
-            print(f"우측 거리: {right_distance} cm - 우회전 중")
-            # 우측에 벽이 있으면 살짝 우회전 (모터 속도 조절)
-            motor1.forward(30)
-            motor2.backward(30)
-            motor3.forward(30)
-            motor4.backward(30)
-            
-            right_distance = read_distance()  # 거리 다시 측정
-            time.sleep(0.01)
-        
-        print("우측 벽이 충분히 멀어짐 - 우회전 완료")
-    else:
-        print("우측에서 오류 발생 - 회전 불가")
-    motor1.stop()
-    motor2.stop()
-    motor3.stop()
-    motor4.stop()
+    if right_distance > 30
+        print(f"우측 거리: {right_distance} cm - 우회전 중")
+        motor1.forward(30)
+        motor2.backward(30)
+        motor3.forward(30)
+        motor4.backward(30)
+        time.sleep(1.25)
 
 # 전방 거리 확인 및 멈춤 로직
 def check_front_and_stop():
-    """전방 거리를 측정하고, 20cm 이하이면 멈추고 우회전을 시도"""
+    """전방 거리를 측정하고, 80cm 이하이면 멈추고 우회전을 시도"""
     set_angle(90)  # 전방 확인
     front_distance = read_distance()
 
-    if front_distance and front_distance <= 80:
+    if front_distance and front_distance <= 100:
         print(f"전방 거리: {front_distance} cm - 멈춤")
         motor1.stop()
         motor2.stop()
