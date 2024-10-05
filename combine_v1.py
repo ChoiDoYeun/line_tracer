@@ -143,10 +143,10 @@ def lidar_thread(laser):
             for point in scan_data.points:
                 degree_angle = math.degrees(point.angle)
                 if 0.01 <= point.range <= 8.0:
-                    if -15 <= degree_angle <= 15:  # 정면 각도 범위 확대
+                    if -5 <= degree_angle <= 5:
                         front_distance = min(front_distance, point.range)
             with obstacle_lock:
-                obstacle_detected = front_distance <= 0.3  # 30cm 이내
+                obstacle_detected = front_distance <= 0.6  # 60cm 이내
         else:
             with obstacle_lock:
                 obstacle_detected = False
