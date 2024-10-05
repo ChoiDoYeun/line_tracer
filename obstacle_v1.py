@@ -103,24 +103,23 @@ def check_front_and_stop():
         print(f"전방 거리: {front_distance} cm - 멈춤(장애물)")
         for motor in motors:
             motor.stop()
-			
+
 def main():
     """메인 실행 함수"""
     set_angle(90)  # 전방 각도로 설정
-	check_front_and_stop()
-	time.sleep(0.05)  # 메인 루프 주기 설정
-	
+    check_front_and_stop()
+    time.sleep(0.05)  # 메인 루프 주기 설정
+
 if __name__ == "__main__":
     try:
         initialize_sensor()
         sensor_thread = threading.Thread(target=sensor_read_thread)
         sensor_thread.daemon = True
         sensor_thread.start()
-        main()  # 메인 함수 실행
+        while True:
+            main()  # 메인 함수 실행
     except KeyboardInterrupt:
         print("프로그램 종료")
     finally:
         pwm.stop()
         GPIO.cleanup()
-if __name__ == "__main__":
-    main()
