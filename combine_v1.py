@@ -6,6 +6,7 @@ import RPi.GPIO as GPIO
 import sys
 import threading
 import ydlidar
+import traceback
 
 # PID 상수
 Kp = 0.22
@@ -166,14 +167,18 @@ def lidar_thread(laser):
                     right_distance = right_distance_temp
                     lidar_data_event.set()  # 라이다 데이터 갱신 이벤트 설정
             else:
-                print("라이다 데이터 수집 실패")
-                with obstacle_lock:
-                    obstacle_detected = False
+                print("라이다 데이터 수집 실패. 라이다 재초기화 중...")
+                # 라이다 재초기화 코드
+                laser.turnOff()
+                laser.disconnecting()
+                time.sleep(1)  # 잠시 대기 후 다시 시도
+                laser.initialize()
+                laser.turnOn()
+                print("라이다 재초기화 완료")
             time.sleep(0.01)  # 주기 조정
         except Exception as e:
             print("라이다 스레드 예외 발생:", e)
             traceback.print_exc()
-            # 필요에 따라 여기서 laser를 재초기화하는 로직을 추가할 수 있습니다.
             time.sleep(1)  # 예외 발생 시 잠시 대기
 
 # 장애물 회피 동작 함수
