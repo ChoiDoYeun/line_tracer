@@ -5,7 +5,7 @@ import threading
 
 # GPIO 핀 설정
 servo_pin = 4  # 서보모터를 연결할 GPIO 핀 번호
-ser = serial.Serial('/dev/serial0', baudrate=115200, timeout=0.05)  # 거리 센서 통신 설정
+ser = serial.Serial('/dev/serial0', baudrate=115200, timeout=0.01)  # 거리 센서 통신 설정
 
 # GPIO 모드 설정
 GPIO.setmode(GPIO.BCM)
