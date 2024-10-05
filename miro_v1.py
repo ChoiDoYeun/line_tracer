@@ -5,7 +5,7 @@ import threading
 
 # GPIO 핀 설정
 servo_pin = 4  # 서보모터를 연결할 GPIO 핀 번호
-ser = serial.Serial('/dev/serial0', baudrate=115200, timeout=0.01)  # 통신 속도 설정
+ser = serial.Serial('/dev/serial0', baudrate=115200, timeout=0.05)  # 통신 속도 설정 및 타임아웃 조정
 
 # GPIO 모드 설정
 GPIO.setmode(GPIO.BCM)
@@ -51,23 +51,25 @@ class MotorController:
         GPIO.cleanup([self.en, self.in1, self.in2])
 
 # 모터 초기화
-motor1 = MotorController(18, 17, 27)  # left front
-motor2 = MotorController(22, 23, 24)  # right front
-motor3 = MotorController(9, 10, 11)   # left back
-motor4 = MotorController(25, 8, 7)    # right back
+motors = [
+    MotorController(18, 17, 27),  # motor1: left front
+    MotorController(22, 23, 24),  # motor2: right front
+    MotorController(9, 10, 11),   # motor3: left back
+    MotorController(25, 8, 7),    # motor4: right back
+]
 
 # 서보모터 제어 함수
 def set_angle(angle):
     """서보모터의 각도를 설정"""
     duty = angle / 18 + 2
     pwm.ChangeDutyCycle(duty)
-    time.sleep(0.3)  # 대기 시간을 0.3초로 조정
+    # 각도 변경 후 대기 시간 조정
+    time.sleep(0.2)
 
-# 거리 측정 함수 (명령 전송 제거)
+# 거리 측정 함수
 def read_distance():
     """TF Luna 센서에서 거리 데이터를 읽어옴"""
     response = ser.read(9)
-    
     if len(response) == 9 and response[0] == 0x59 and response[1] == 0x59:
         distance = response[2] + response[3] * 256
         return distance
@@ -95,82 +97,63 @@ def initialize_sensor():
 # 우회전 로직
 def dynamic_right_turn():
     """동적으로 우회전을 수행하는 함수"""
-    max_turn_time = 10  # 최대 회전 시간 설정 (필요에 따라 조정 가능)
+    max_turn_time = 5  # 최대 회전 시간 설정
     start_time = time.time()
 
     set_angle(90)  # 전방 각도 설정
-    time.sleep(0.5)  # 서보모터가 움직일 시간을 줌
 
     while True:
-        # 전방 거리 측정
-        front_distance = read_distance()
+        front_distance = latest_distance
 
         if front_distance is not None:
             print(f"전방 거리: {front_distance} cm")
         else:
             print("전방 거리 데이터를 읽지 못했습니다.")
 
-        # 전방 거리가 50cm 이하이면 우회전을 계속
-        if front_distance is not None and front_distance <= 300:
+        if front_distance is not None and front_distance <= 50:
             print("우회전 중...")
             # 우회전 모터 동작
-            motor1.forward(30)
-            motor2.backward(30)
-            motor3.forward(30)
-            motor4.backward(30)
-            time.sleep(0.05)  # 반복 주기 설정
-                # 모터 정지
-            motor1.stop()
-            motor2.stop()
-            motor3.stop()
-            motor4.stop()
-            time.sleep(0.001)  # 반복 주기 설정
+            motors[0].forward(30)
+            motors[1].backward(30)
+            motors[2].forward(30)
+            motors[3].backward(30)
+            time.sleep(0.1)
         else:
             print("전방 거리가 충분합니다. 회전을 멈춥니다.")
             break
 
-        # 최대 회전 시간 체크
         if time.time() - start_time > max_turn_time:
             print("최대 회전 시간을 초과했습니다. 회전을 멈춥니다.")
             break
 
-        time.sleep(0.001)  # 반복 주기 설정
-
     # 모터 정지
-    motor1.stop()
-    motor2.stop()
-    motor3.stop()
-    motor4.stop()
+    for motor in motors:
+        motor.stop()
 
 # 전방 거리 확인 및 멈춤 로직
 def check_front_and_stop():
-    """전방 거리를 측정하고, 100cm 이하이면 멈추고 우회전을 시도"""
-    set_angle(90)  # 전방 확인
-    front_distance = read_distance()
+    """전방 거리를 확인하고, 장애물이 있으면 우회전 시도"""
+    front_distance = latest_distance
 
     if front_distance is not None and front_distance <= 50:
         print(f"전방 거리: {front_distance} cm - 멈춤")
-        motor1.stop()
-        motor2.stop()
-        motor3.stop()
-        motor4.stop()
-        time.sleep(0.01)
+        for motor in motors:
+            motor.stop()
         dynamic_right_turn()  # 우회전 시도
     else:
         if front_distance is None:
             print("전방 거리 데이터를 읽지 못했습니다.")
         else:
             print(f"전방 거리: {front_distance} cm - 전진")
-        motor1.forward(20)
-        motor2.forward(20)
-        motor3.forward(20)
-        motor4.forward(20)
+        for motor in motors:
+            motor.forward(20)
 
 def main():
     """메인 실행 함수"""
+    set_angle(90)  # 전방 각도로 설정
     while True:
         check_front_and_stop()
-        time.sleep(0.01)  # 메인 루프 주기 설정
+        time.sleep(0.05)  # 메인 루프 주기 설정
 
 if __name__ == "__main__":
     try:
