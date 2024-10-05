@@ -14,8 +14,8 @@ class MotorController:
         self.pwm.start(0)
 
     def set_speed(self, speed):
-        # 속도를 -100에서 100 사이로 제한
-        speed = max(min(speed, 100), -100)
+        # 속도를 -50에서 50 사이로 제한
+        speed = max(min(speed, 50), -50)
         self.pwm.ChangeDutyCycle(abs(speed))
 
     def forward(self, speed=40):
@@ -47,47 +47,13 @@ motor3 = MotorController(9, 10, 11)  # left back
 motor4 = MotorController(25, 8, 7)   # right back
 
 try:
-    # 각 모터를 2초 동안 정방향으로 구동
-    print("Motor 1 forward")
     motor1.forward(50)
-    time.sleep(2)
-    motor1.stop()
-    
-    print("Motor 2 forward")
-    motor2.forward(50)
-    time.sleep(2)
-    motor2.stop()
-    
-    print("Motor 3 forward")
-    motor3.forward(50)
-    time.sleep(2)
-    motor3.stop()
-    
-    print("Motor 4 forward")
-    motor4.forward(50)
-    time.sleep(2)
-    motor4.stop()
-    
-    # 각 모터를 2초 동안 역방향으로 구동
-    print("Motor 1 backward")
-    motor1.backward(50)
-    time.sleep(2)
-    motor1.stop()
-    
-    print("Motor 2 backward")
     motor2.backward(50)
-    time.sleep(2)
-    motor2.stop()
-    
-    print("Motor 3 backward")
-    motor3.backward(50)
-    time.sleep(2)
-    motor3.stop()
-    
-    print("Motor 4 backward")
+    motor3.forward(50)
     motor4.backward(50)
-    time.sleep(2)
-    motor4.stop()
+    time.sleep(1)
+    
+
 
 finally:
     # GPIO 정리
