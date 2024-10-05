@@ -179,7 +179,7 @@ def avoid_obstacle():
         time.sleep(0.75)  # 일정 시간 이동
         print("우측 최초 회피 끝")
 
-    # 회피 후 멈추고 다시 거리 재확인
+    # 회피 후 모터 멈춤
     motor1.stop()
     motor2.stop()
     motor3.stop()
@@ -189,18 +189,21 @@ def avoid_obstacle():
 
     # 강제로 라이다 데이터를 재확인
     scan_data = ydlidar.LaserScan()
-    if laser.doProcessSimple(scan_data):  # 라이다 데이터를 강제로 다시 처리
-        with obstacle_lock:
-            left_distance = float('inf')
-            right_distance = float('inf')
-            for point in scan_data.points:
-                degree_angle = math.degrees(point.angle)
-                if 0.01 <= point.range <= 8.0:
-                    if 85 <= degree_angle <= 95:  # 좌측
-                        left_distance = min(left_distance, point.range)
-                    if -95 <= degree_angle <= -85:  # 우측
-                        right_distance = min(right_distance, point.range)
-            print(f"갱신된 좌측 거리: {left_distance} m, 갱신된 우측 거리: {right_distance} m")
+    while not laser.doProcessSimple(scan_data):  # 라이다 데이터를 강제로 다시 처리
+        print("라이다 데이터 갱신 대기 중...")
+        time.sleep(0.1)
+
+    with obstacle_lock:
+        left_distance = float('inf')
+        right_distance = float('inf')
+        for point in scan_data.points:
+            degree_angle = math.degrees(point.angle)
+            if 0.01 <= point.range <= 8.0:
+                if 85 <= degree_angle <= 95:  # 좌측
+                    left_distance = min(left_distance, point.range)
+                if -95 <= degree_angle <= -85:  # 우측
+                    right_distance = min(right_distance, point.range)
+        print(f"갱신된 좌측 거리: {left_distance} m, 갱신된 우측 거리: {right_distance} m")
 
     # 갱신된 거리 데이터를 기반으로 추가 회피 동작
     if left_distance > right_distance:
@@ -323,3 +326,4 @@ def main():
 if __name__ == "__main__":
     GPIO.setmode(GPIO.BCM)
     main()
+
