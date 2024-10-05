@@ -224,4 +224,29 @@ def main():
                     motor1.stop()
                     motor2.stop()
                     motor3.stop()
-                    motor4.
+                    motor4.stop()
+                    break  # 필요에 따라 조정
+
+            control_motors(left_motor_speed, right_motor_speed)
+
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                break
+
+    finally:
+        motor1.stop()
+        motor2.stop()
+        motor3.stop()
+        motor4.stop()
+        motor1.cleanup()
+        motor2.cleanup()
+        motor3.cleanup()
+        motor4.cleanup()
+        laser.turnOff()
+        laser.disconnecting()
+
+    cap.release()
+    cv2.destroyAllWindows()
+
+if __name__ == "__main__":
+    GPIO.setmode(GPIO.BCM)
+    main()
