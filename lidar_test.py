@@ -20,18 +20,18 @@ def update_scan(scan_data, laser):
                 if -1 <= degree_angle <= 1:  # 0도 근처
                     front_distance = min(front_distance, point.range)
 
-                # 좌측 (90도)
-                if 89 <= degree_angle <= 91:  # 90도 근처
-                    left_distance = min(left_distance, point.range)
-
-                # 우측 (-90도)
-                if -91 <= degree_angle <= -89:  # -90도 근처
+                # 우측 (90도)
+                if 89 <= degree_angle <= 91:  # 90도 근처 (우측)
                     right_distance = min(right_distance, point.range)
+
+                # 좌측 (-90도)
+                if -91 <= degree_angle <= -89:  # -90도 근처 (좌측)
+                    left_distance = min(left_distance, point.range)
 
         # 거리 출력 (cm로 변환하여 출력)
         print(f"정면 거리: {front_distance * 100:.2f} cm" if front_distance != float('inf') else "정면에서 감지된 물체가 없습니다.")
-        print(f"좌측 거리: {left_distance * 100:.2f} cm" if left_distance != float('inf') else "좌측에서 감지된 물체가 없습니다.")
         print(f"우측 거리: {right_distance * 100:.2f} cm" if right_distance != float('inf') else "우측에서 감지된 물체가 없습니다.")
+        print(f"좌측 거리: {left_distance * 100:.2f} cm" if left_distance != float('inf') else "좌측에서 감지된 물체가 없습니다.")
     else:
         print("Failed to get Lidar Data.")
 
