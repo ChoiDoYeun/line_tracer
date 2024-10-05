@@ -133,13 +133,14 @@ if __name__ == "__main__":
                     motor2.stop()
                     motor3.stop()
                     motor4.stop()
+                    time.sleep(0.01)
 
                     # 우회전하며 정면이 1m 이상이 될 때까지 회전
                     while front_dist <= 1.0:
                         print("우회전 중...")
                         dynamic_turn(motor1, motor2, 40, 40, "right")
                         dynamic_turn(motor3, motor4, 40, 40, "right")
-                        time.sleep(0.1)  # 잠시 대기 후 정면 거리 업데이트
+                        time.sleep(0.001)  # 잠시 대기 후 정면 거리 업데이트
                         front_dist, _, _ = update_scan(scan_data, laser)
 
                 elif front_dist > 0.6:  # 정면에 장애물이 없으면 전진
@@ -150,7 +151,7 @@ if __name__ == "__main__":
                     print("전진 중")
 
                 # 잠시 대기
-                time.sleep(0.1)
+                time.sleep(0.001)
 
         except KeyboardInterrupt:
             # 정지 및 정리
