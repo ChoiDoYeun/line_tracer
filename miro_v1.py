@@ -4,7 +4,7 @@ import serial
 
 # GPIO 핀 설정
 servo_pin = 4  # 서보모터를 연결할 GPIO 핀 번호
-ser = serial.Serial('/dev/serial0', baudrate=115200, timeout=0.001)  # 230400으로 통신 속도 증가
+ser = serial.Serial('/dev/serial0', baudrate=115200, timeout=0.01)  # 230400으로 통신 속도 증가
 
 # GPIO 모드 설정
 GPIO.setmode(GPIO.BCM)
