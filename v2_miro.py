@@ -119,4 +119,41 @@ if __name__ == "__main__":
         scan_data = ydlidar.LaserScan()
 
         try:
- 
+            while True:
+                # 거리 데이터 업데이트
+                front_dist, left_dist, right_dist = update_scan(scan_data, laser)
+
+                if front_dist is None or left_dist is None or right_dist is None:
+                    continue
+
+                # 거리 데이터 기준으로 행동 결정
+                if right_dist > 0.3:  # 우측에 벽이 없으면 우회전 (동적 제어)
+                    dynamic_turn(motor1, motor2, 40, 30, "right")
+                    dynamic_turn(motor3, motor4, 40, 30, "right")
+                elif front_dist > 0.3:  # 정면에 장애물이 없으면 전진
+                    motor1.forward()
+                    motor2.forward()
+                    motor3.forward()
+                    motor4.forward()
+                    print("전진 중")
+                else:  # 우측과 정면에 벽이 있으면 좌회전 (동적 제어)
+                    dynamic_turn(motor1, motor2, 30, 40, "left")
+                    dynamic_turn(motor3, motor4, 30, 40, "left")
+
+                # 잠시 대기
+                time.sleep(0.1)
+
+        except KeyboardInterrupt:
+            # 정지 및 정리
+            motor1.stop()
+            motor2.stop()
+            motor3.stop()
+            motor4.stop()
+            motor1.cleanup()
+            motor2.cleanup()
+            motor3.cleanup()
+            motor4.cleanup()
+
+        # Lidar 종료
+        laser.turnOff()
+    laser.disconnecting()
