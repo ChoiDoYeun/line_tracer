@@ -7,7 +7,7 @@ if __name__ == "__main__":
     ydlidar.os_init();
     laser = ydlidar.CYdLidar();
     ports = ydlidar.lidarPortList();
-    port = "/dev/ydlidar";
+    port = "/dev/ttyUSB0";
     for key, value in ports.items():
         port = value;
     laser.setlidaropt(ydlidar.LidarPropSerialPort, port);
