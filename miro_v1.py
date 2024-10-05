@@ -148,7 +148,7 @@ def check_front_and_stop():
     set_angle(90)  # 전방 확인
     front_distance = read_distance()
 
-    if front_distance is not None and front_distance <= 80:
+    if front_distance is not None and front_distance <= 50:
         print(f"전방 거리: {front_distance} cm - 멈춤")
         motor1.stop()
         motor2.stop()
@@ -161,10 +161,10 @@ def check_front_and_stop():
             print("전방 거리 데이터를 읽지 못했습니다.")
         else:
             print(f"전방 거리: {front_distance} cm - 전진")
-        motor1.forward(30)
-        motor2.forward(30)
-        motor3.forward(30)
-        motor4.forward(30)
+        motor1.forward(20)
+        motor2.forward(20)
+        motor3.forward(20)
+        motor4.forward(20)
 
 def main():
     """메인 실행 함수"""
