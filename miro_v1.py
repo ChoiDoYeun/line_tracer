@@ -89,7 +89,7 @@ def dynamic_right_turn():
         motor2.backward(30)
         motor3.forward(30)
         motor4.backward(30)
-        time.sleep(1.5)
+        time.sleep(1.35)
     else:
         print("우측 거리 데이터를 읽지 못했습니다. 우회전 중지.")
         motor1.stop()
