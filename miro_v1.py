@@ -78,46 +78,31 @@ def read_distance():
 # 우회전 로직
 def dynamic_right_turn():
     """동적으로 우회전을 수행하는 함수"""
-    max_turn_time = 5  # 최대 회전 시간 설정 (예: 5초)
+    max_turn_time = 10  # 최대 회전 시간 설정 (필요에 따라 조정 가능)
     start_time = time.time()
 
-    set_angle(0)  # 우측 각도 설정
+    set_angle(90)  # 전방 각도 설정
     time.sleep(0.5)  # 서보모터가 움직일 시간을 줌
 
     while True:
-        # 우측 거리 측정
-        right_distance = read_distance()
-
         # 전방 거리 측정
-        set_angle(90)  # 전방 각도 설정
-        time.sleep(0.5)
         front_distance = read_distance()
-
-        # 디버깅 출력
-        if right_distance is not None:
-            print(f"우측 거리: {right_distance} cm")
-        else:
-            print("우측 거리 데이터를 읽지 못했습니다.")
 
         if front_distance is not None:
             print(f"전방 거리: {front_distance} cm")
         else:
             print("전방 거리 데이터를 읽지 못했습니다.")
 
-        # 회전 조건 판단
-        if front_distance is not None and front_distance <= 100:
-            if right_distance is not None and right_distance > 30:
-                print("우회전 중...")
-                # 우회전 모터 동작
-                motor1.forward(30)
-                motor2.backward(30)
-                motor3.forward(30)
-                motor4.backward(30)
-            else:
-                print("우측에 장애물이 있습니다. 회전을 멈춥니다.")
-                break
+        # 전방 거리가 50cm 이하이면 우회전을 계속
+        if front_distance is not None and front_distance <= 50:
+            print("우회전 중...")
+            # 우회전 모터 동작
+            motor1.forward(30)
+            motor2.backward(30)
+            motor3.forward(30)
+            motor4.backward(30)
         else:
-            print("전방이 열렸습니다. 회전을 멈춥니다.")
+            print("전방 거리가 충분합니다. 회전을 멈춥니다.")
             break
 
         # 최대 회전 시간 체크
