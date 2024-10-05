@@ -13,7 +13,6 @@ def update_scan(scan_data, laser):
         angles = []
         distances = []
         for point in scan_data.points:
-            print(f"각도: {math.degrees(point.angle):.2f}°, 거리: {point.range:.2f} m")
             if -0.5236 <= point.angle <= 0.5236:  # -30도에서 +30도
                 # 거리 값이 0.1m ~ 8m 사이일 때만 유효한 데이터로 간주
                 if 0.01 <= point.range <= 8.0:
@@ -51,7 +50,7 @@ if __name__ == "__main__":
     laser.setlidaropt(ydlidar.LidarPropLidarType, ydlidar.TYPE_TOF)
     laser.setlidaropt(ydlidar.LidarPropDeviceType, ydlidar.YDLIDAR_TYPE_SERIAL)
     laser.setlidaropt(ydlidar.LidarPropScanFrequency, 5.0)
-    laser.setlidaropt(ydlidar.LidarPropSampleRate, 2000)
+    laser.setlidaropt(ydlidar.LidarPropSampleRate, 20)
 
     # 단방향 통신 설정
     laser.setlidaropt(ydlidar.LidarPropSingleChannel, True)
