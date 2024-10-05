@@ -96,7 +96,29 @@ def dynamic_right_turn():
     motor3.stop()
     motor4.stop()
 
-# 전방 거리 확인 및 멈춤 로직 (코드는 동일하므로 생략)
+# 전방 거리 확인 및 멈춤 로직
+def check_front_and_stop():
+    """전방 거리를 측정하고, 100cm 이하이면 멈추고 우회전을 시도"""
+    set_angle(90)  # 전방 확인
+    front_distance = read_distance()
+
+    if front_distance is not None and front_distance <= 100:
+        print(f"전방 거리: {front_distance} cm - 멈춤")
+        motor1.stop()
+        motor2.stop()
+        motor3.stop()
+        motor4.stop()
+        time.sleep(0.01)
+        dynamic_right_turn()  # 우회전 시도
+    else:
+        if front_distance is None:
+            print("전방 거리 데이터를 읽지 못했습니다.")
+        else:
+            print(f"전방 거리: {front_distance} cm - 전진")
+        motor1.forward(40)
+        motor2.forward(40)
+        motor3.forward(40)
+        motor4.forward(40)
 
 def main():
     """메인 실행 함수"""
