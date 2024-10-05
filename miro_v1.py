@@ -94,7 +94,7 @@ def dynamic_right_turn():
             print("전방 거리 데이터를 읽지 못했습니다.")
 
         # 전방 거리가 50cm 이하이면 우회전을 계속
-        if front_distance is not None and front_distance <= 50:
+        if front_distance is not None and front_distance <= 100:
             print("우회전 중...")
             # 우회전 모터 동작
             motor1.forward(30)
