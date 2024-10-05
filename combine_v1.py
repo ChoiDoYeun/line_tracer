@@ -3,22 +3,17 @@ import numpy as np
 import time
 import math
 import RPi.GPIO as GPIO
-import serial
-import threading
 
 # PID 상수
-Kp = 0.50
+Kp = 0.22
 Ki = 0.00
-Kd = 0.00
+Kd = 0.04
 
 # PID 제어 변수
 prev_error = 0.0
 integral = 0.0
 
-# GPIO 설정
-GPIO.setmode(GPIO.BCM)
-
-# 모터 컨트롤러 클래스
+# MotorController 클래스
 class MotorController:
     def __init__(self, en, in1, in2):
         self.en = en
@@ -31,7 +26,7 @@ class MotorController:
         self.pwm.start(0)
 
     def set_speed(self, speed):
-        speed = max(min(speed, 50), -50)
+        speed = max(min(speed, 60), -60)
         self.pwm.ChangeDutyCycle(abs(speed))
 
     def forward(self, speed=40):
@@ -52,6 +47,8 @@ class MotorController:
     def cleanup(self):
         self.pwm.stop()
         GPIO.cleanup([self.en, self.in1, self.in2])
+
+GPIO.setmode(GPIO.BCM)
 
 # 모터 초기화
 motor1 = MotorController(18, 17, 27)  # left front
@@ -100,7 +97,8 @@ def process_image(frame):
     line_center_x, diff = None, None
     found = False
 
-    if lines is not None:
+    # 수정된 부분: lines가 None이 아니고 길이가 0보다 큰지 확인
+    if lines is not None and len(lines) > 0:
         x_positions = []
         for line in lines:
             x1, y1, x2, y2 = line[0]
@@ -116,7 +114,7 @@ def process_image(frame):
             line_center_x = (left_x + right_x) // 2
             diff = line_center_x - 211
             found = True
-        else:
+        elif num_positions == 1:
             line_center_x = x_positions[0]
             diff = line_center_x - 211
             found = True
@@ -124,47 +122,8 @@ def process_image(frame):
     if not found:
         line_center_x = 211
         diff = 0
-        print("선을 감지하지 못했습니다.")
 
-    return line_center_x, diff
-
-# 거리 측정 함수
-def read_distance():
-    response = ser.read(9)
-    if len(response) == 9 and response[0] == 0x59 and response[1] == 0x59:
-        distance = response[2] + response[3] * 256
-        return distance
-    else:
-        return None
-
-# 최신 거리 값을 저장할 전역 변수
-latest_distance = None
-
-# 센서 데이터를 지속적으로 읽어오는 스레드 함수
-def sensor_read_thread():
-    global latest_distance
-    while True:
-        distance = read_distance()
-        if distance is not None:
-            latest_distance = distance
-        time.sleep(0.001)  # 너무 빈번한 읽기를 방지
-
-# 센서를 연속 출력 모드로 설정
-def initialize_sensor():
-    ser.write(b'\x42\x57\x02\x00\x00\x00\x00\xff')  # 연속 모드 설정 명령
-    time.sleep(0.001)
-
-# 장애물 감지 및 회피 함수
-def check_front_and_stop():
-    front_distance = latest_distance
-
-    if front_distance is not None and front_distance <= 80:
-        print(f"전방 거리: {front_distance} cm - 멈춤(장애물)")
-        for motor in [motor1, motor2, motor3, motor4]:
-            motor.stop()
-        return True  # 장애물 감지됨
-    else:
-        return False  # 장애물 없음
+    return line_center_x, diff, found
 
 # 메인 제어 루프
 def main():
@@ -178,6 +137,10 @@ def main():
 
     prev_time = time.time()
 
+    # 라인 감지 실패 횟수 추적
+    no_line_count = 0
+    miro = False
+
     try:
         while True:
             ret, frame = cap.read()
@@ -189,29 +152,40 @@ def main():
             dt = current_time - prev_time
             prev_time = current_time
 
-            # 장애물 감지
-            if check_front_and_stop():
-                continue  # 장애물이 있으면 루프를 반복하여 정지
-
-            # 라인트레이서 동작
-            line_center_x, diff = process_image(frame)
+            line_center_x, diff, found = process_image(frame)
 
             if math.isnan(line_center_x) or math.isnan(diff):
                 print("경고: 계산된 값이 NaN입니다.")
                 continue
 
-            if -50 <= diff <= 50:
-                base_speed = 100
-                pid_value = 0
+            # 라인을 감지하지 못한 경우
+            if not found:
+                no_line_count += 1
+                print(f"선을 감지하지 못했습니다. {no_line_count} 프레임 연속 실패.")
             else:
-                base_speed = 0
+                no_line_count = 0  # 라인을 감지하면 카운트를 초기화
+
+            # 연속 5프레임 이상 라인을 감지하지 못한 경우
+            if no_line_count >= 5:
+                miro = True
+                print("미로 모드 활성화: 라인을 5프레임 연속으로 감지하지 못했습니다.")
+                break  # 프로그램 종료
+
+            # 임계값 내에서는 base_speed = 100, 임계값을 벗어나면 base_speed = 20
+            if -60 <= diff <= 60:
+                base_speed = 100  # 기준값 내에서 이동 속도 유지
+                pid_value = 0  # 보정값을 0으로 설정
+            else:
+                base_speed = 20  # 임계 구간을 벗어나면 이동 속도 감소
                 pid_value = pid_control(diff, dt)
 
+            # 속도 계산
             left_motor_speed = base_speed + pid_value
             right_motor_speed = base_speed - pid_value
 
             print(f"left : {left_motor_speed} , right : {right_motor_speed}")
 
+            # 모터 제어 함수 호출
             control_motors(left_motor_speed, right_motor_speed)
 
             if cv2.waitKey(1) & 0xFF == ord('q'):
@@ -232,11 +206,5 @@ def main():
 
 # 프로그램 실행
 if __name__ == "__main__":
-    ser = serial.Serial('/dev/serial0', baudrate=115200, timeout=0.001)
-    initialize_sensor()
-    sensor_thread = threading.Thread(target=sensor_read_thread)
-    sensor_thread.daemon = True
-    sensor_thread.start()
-    
     GPIO.setmode(GPIO.BCM)
     main()
