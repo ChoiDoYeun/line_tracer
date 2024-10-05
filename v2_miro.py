@@ -114,6 +114,7 @@ if __name__ == "__main__":
     if ret:
         ret = laser.turnOn()
         scan_data = ydlidar.LaserScan()
+
     # 좌측 및 우측 모터 그룹화
     left_motors = [motor1, motor3]
     right_motors = [motor2, motor4]
@@ -163,17 +164,17 @@ if __name__ == "__main__":
             # 잠시 대기
             time.sleep(0.1)
 
- except KeyboardInterrupt:
-    # 정지 및 정리
-    motor1.stop()
-    motor2.stop()
-    motor3.stop()
-    motor4.stop()
-    motor1.cleanup()
-    motor2.cleanup()
-    motor3.cleanup()
-    motor4.cleanup()
-    
-    # Lidar 종료
-    laser.turnOff()
-    laser.disconnecting()
+    except KeyboardInterrupt:
+        # 정지 및 정리
+        motor1.stop()
+        motor2.stop()
+        motor3.stop()
+        motor4.stop()
+        motor1.cleanup()
+        motor2.cleanup()
+        motor3.cleanup()
+        motor4.cleanup()
+
+        # Lidar 종료
+        laser.turnOff()
+        laser.disconnecting()
