@@ -14,9 +14,46 @@ GPIO.setup(servo_pin, GPIO.OUT)
 pwm = GPIO.PWM(servo_pin, 50)
 pwm.start(0)
 
-# MotorController 클래스 정의 (코드는 동일하므로 생략)
+# MotorController 클래스 정의
+class MotorController:
+    def __init__(self, en, in1, in2):
+        self.en = en
+        self.in1 = in1
+        self.in2 = in2
+        GPIO.setup(self.en, GPIO.OUT)
+        GPIO.setup(self.in1, GPIO.OUT)
+        GPIO.setup(self.in2, GPIO.OUT)
+        self.pwm = GPIO.PWM(self.en, 100)
+        self.pwm.start(0)
 
-# 모터 초기화 (코드는 동일하므로 생략)
+    def set_speed(self, speed):
+        speed = max(min(speed, 60), -60)
+        self.pwm.ChangeDutyCycle(abs(speed))
+
+    def forward(self, speed=40):
+        self.set_speed(speed)
+        GPIO.output(self.in1, GPIO.HIGH)
+        GPIO.output(self.in2, GPIO.LOW)
+
+    def backward(self, speed=40):
+        self.set_speed(speed)
+        GPIO.output(self.in1, GPIO.LOW)
+        GPIO.output(self.in2, GPIO.HIGH)
+
+    def stop(self):
+        self.set_speed(0)
+        GPIO.output(self.in1, GPIO.LOW)
+        GPIO.output(self.in2, GPIO.LOW)
+
+    def cleanup(self):
+        self.pwm.stop()
+        GPIO.cleanup([self.en, self.in1, self.in2])
+
+# 모터 초기화
+motor1 = MotorController(18, 17, 27)  # left front
+motor2 = MotorController(22, 23, 24)  # right front
+motor3 = MotorController(9, 10, 11)   # left back
+motor4 = MotorController(25, 8, 7)    # right back
 
 # 서보모터 제어 함수
 def set_angle(angle):
