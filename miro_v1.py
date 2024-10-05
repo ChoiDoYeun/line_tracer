@@ -107,13 +107,13 @@ def check_front_and_stop():
     set_angle(90)  # 전방 확인
     front_distance = read_distance()
 
-    if front_distance and front_distance <= 20:
+    if front_distance and front_distance <= 50:
         print(f"전방 거리: {front_distance} cm - 멈춤")
         motor1.stop()
         motor2.stop()
         motor3.stop()
         motor4.stop()
-        time.sleep(0.001)
+        time.sleep(0.01)
         dynamic_right_turn()  # 우회전 시도
     else:
         print(f"전방 거리: {front_distance} cm - 전진")
