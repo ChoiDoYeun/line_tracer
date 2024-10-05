@@ -146,7 +146,7 @@ def check_front_and_stop():
         else:
             print(f"전방 거리: {front_distance} cm - 전진")
         for motor in motors:
-            motor.forward(40)
+            motor.forward(20)
 
 def main():
     """메인 실행 함수"""
