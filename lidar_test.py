@@ -1,4 +1,6 @@
 import os
+import sys
+sys.path.append('/usr/local/lib/python3.11/dist-packages')
 import ydlidar
 
 if __name__ == "__main__":
