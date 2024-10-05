@@ -84,7 +84,6 @@ def control_motors(left_speed, right_speed):
         motor4.forward(right_speed)
     else:
         motor2.backward(-right_speed)
-        motor4.backward(-right_speed)
 
 # 이미지 처리 함수
 def process_image(frame):
