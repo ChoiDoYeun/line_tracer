@@ -130,7 +130,7 @@ if __name__ == "__main__":
                 if right_dist > 0.3:  # 우측에 벽이 없으면 우회전 (동적 제어)
                     dynamic_turn(motor1, motor2, 40, 30, "right")
                     dynamic_turn(motor3, motor4, 40, 30, "right")
-                elif front_dist > 0.3:  # 정면에 장애물이 없으면 전진
+                elif front_dist > 0.6:  # 정면에 장애물이 없으면 전진
                     motor1.forward()
                     motor2.forward()
                     motor3.forward()
