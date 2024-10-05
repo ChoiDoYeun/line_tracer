@@ -1,19 +1,25 @@
-import PyLidar3
-import time
+import sys
+from ydlidar import *
 
-port = "/dev/ttyUSB0"
-lidar = PyLidar3.YdLidarX4(port)
+def main():
+    laser = CYdLidar()
+    laser.setlidaropt(LidarPropSerialPort, "/dev/ttyUSB0")
+    laser.setlidaropt(LidarPropSerialBaudrate, 115200)
+    laser.setlidaropt(LidarPropLidarType, TYPE_TRIANGLE)
+    laser.setlidaropt(LidarPropDeviceType, YDLIDAR_TYPE_SERIAL)
+    laser.setlidaropt(LidarPropScanFrequency, 7.0)
 
-if lidar.Connect():
-    print("LiDAR 연결 성공")
-    gen = lidar.StartScanning()
-    start_time = time.time()
+    if laser.initialize():
+        print("YDLidar initialized successfully!")
+        while True:
+            scan = laser.doProcessSimple(scan=None)
+            if scan:
+                print("Lidar scan received:", len(scan))
+    else:
+        print("Failed to initialize YDLidar.")
     
-    while (time.time() - start_time) < 30:  # 30초 동안 스캔
-        data = next(gen)
-        print(data)
-    
-    lidar.StopScanning()
-    lidar.Disconnect()
-else:
-    print("LiDAR 연결 실패")
+    laser.turnOff()
+    laser.disconnecting()
+
+if __name__ == "__main__":
+    main()
