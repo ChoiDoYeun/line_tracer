@@ -74,7 +74,7 @@ try:
     motor4.stop()
     time.sleep(0.5)
     control_motors(100, -100)  # 우회전
-    time.sleep(0.16)
+    time.sleep(1.6)
 
 
 finally:
