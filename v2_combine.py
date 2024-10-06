@@ -3,23 +3,29 @@ import numpy as np
 import time
 import math
 import RPi.GPIO as GPIO
+import threading
+import os
 import sys
-import multiprocessing
 
-sys.path.append('/home/dodo/YDLidar-SDK/build/python')
+sys.path.append('/home/dodo/YDLidar-SDK/build/python')  # Adjust the path if necessary
 import ydlidar
 
-# PID 상수
+# PID constants
 Kp = 0.22
 Ki = 0.00
 Kd = 0.04
 
-# PID 제어 변수
+# PID variables
 prev_error = 0.0
 integral = 0.0
 
-# OpenCV 최적화 설정
-cv2.setUseOptimized(True)
+# Shared variables for LiDAR data
+front_distance = float('inf')
+left_distance = float('inf')
+right_distance = float('inf')
+
+# Lock for synchronizing access to shared variables
+lidar_lock = threading.Lock()
 
 # MotorController 클래스
 class MotorController:
@@ -94,193 +100,118 @@ def control_motors(left_speed, right_speed):
         motor2.backward(-right_speed)
         motor4.backward(-right_speed)
 
-# Lidar 초기화 함수
-def init_lidar():
-    ydlidar.os_init()  # SDK 초기화
+# LiDAR thread function
+def lidar_thread():
+    global front_distance, left_distance, right_distance
+    ydlidar.os_init()  # SDK initialization
     laser = ydlidar.CYdLidar()
     ports = ydlidar.lidarPortList()
 
-    # 포트 설정
+    # Port settings
     port = "/dev/ttyUSB0"
     for key, value in ports.items():
         port = value
 
-    # Lidar 설정
+    # LiDAR settings
     laser.setlidaropt(ydlidar.LidarPropSerialPort, port)
     laser.setlidaropt(ydlidar.LidarPropSerialBaudrate, 115200)
     laser.setlidaropt(ydlidar.LidarPropLidarType, ydlidar.TYPE_TRIANGLE)
     laser.setlidaropt(ydlidar.LidarPropDeviceType, ydlidar.YDLIDAR_TYPE_SERIAL)
-    laser.setlidaropt(ydlidar.LidarPropScanFrequency, 7.0)  # 권장 주파수로 설정
-    laser.setlidaropt(ydlidar.LidarPropSampleRate, 3000)  # 샘플레이트 유지
+    laser.setlidaropt(ydlidar.LidarPropScanFrequency, 7.0)
+    laser.setlidaropt(ydlidar.LidarPropSampleRate, 3000)
     laser.setlidaropt(ydlidar.LidarPropSingleChannel, True)
 
-    # Lidar 초기화
+    # Initialize LiDAR
     ret = laser.initialize()
     if ret:
         ret = laser.turnOn()
         scan_data = ydlidar.LaserScan()
-        return laser, scan_data
-    else:
-        print("Lidar 초기화에 실패했습니다.")
-        return None, None
 
-# Lidar 데이터 수집 함수
-def get_lidar_data(lidar_queue):
-    laser, scan_data = init_lidar()
-    if laser is None:
-        print("라이다 초기화 실패")
-        return
+        while ret and ydlidar.os_isOk() and laser.doProcessSimple(scan_data):
+            with lidar_lock:
+                # Reset distances for each scan
+                front_distance = float('inf')
+                left_distance = float('inf')
+                right_distance = float('inf')
 
-    try:
-        while True:
-            r = laser.doProcessSimple(scan_data)
-            front_distance = float('inf')  # 정면 거리
-            left_distance = float('inf')   # 좌측 거리
-            right_distance = float('inf')  # 우측 거리
-
-            if r:
                 for point in scan_data.points:
                     degree_angle = math.degrees(point.angle)
                     if 0.01 <= point.range <= 8.0:
-
-                        # 정면 (0도)
+                        # Front (0 degrees)
                         if -1 <= degree_angle <= 1:
                             front_distance = min(front_distance, point.range)
-
-                        # 우측 (90도)
-                        if 89 <= degree_angle <= 91:
+                        # Right (90 degrees)
+                        elif 89 <= degree_angle <= 91:
                             right_distance = min(right_distance, point.range)
-
-                        # 좌측 (-90도)
-                        if -91 <= degree_angle <= -89:
+                        # Left (-90 degrees)
+                        elif -91 <= degree_angle <= -89:
                             left_distance = min(left_distance, point.range)
-
-            distances = {'front': front_distance, 'left': left_distance, 'right': right_distance}
-            if not lidar_queue.full():
-                lidar_queue.put(distances)
-
-            time.sleep(0.05)
-    finally:
+            # Short sleep to prevent high CPU usage
+            time.sleep(0.01)
         laser.turnOff()
-        laser.disconnecting()
+    laser.disconnecting()
 
-# 이미지 처리 함수 (멀티프로세싱으로 처리)
-def process_image(frame_queue, result_queue):
-    while True:
-        frame = frame_queue.get()
-        if frame is None:
-            break
-        
-        hls = cv2.cvtColor(frame, cv2.COLOR_BGR2HLS)
-        s_channel = hls[:, :, 2]
-        blurred = cv2.GaussianBlur(s_channel, (5, 5), 0)
-        canny_edges = cv2.Canny(blurred, 50, 150)
-        lines = cv2.HoughLinesP(canny_edges, 1, np.pi / 180, threshold=20, minLineLength=5, maxLineGap=10)
-
-        line_center_x, diff = None, None
-        found = False
-
-        if lines is not None:
-            x_positions = []
-            for line in lines:
-                x1, y1, x2, y2 = line[0]
-                x_mid = (x1 + x2) // 2
-                x_positions.append(x_mid)
-
-            x_positions.sort()
-            num_positions = len(x_positions)
-
-            if num_positions >= 1:
-                left_x = x_positions[0]
-                right_x = x_positions[-1]
-                line_center_x = (left_x + right_x) // 2
-                diff = line_center_x - 211
-                found = True
-            else:
-                line_center_x = x_positions[0]
-                diff = line_center_x - 211
-                found = True
-
-        if not found:
-            line_center_x = 211
-            diff = 0
-            print("선을 감지하지 못했습니다.")
-
-        result_queue.put((line_center_x, diff))
-
-# 메인 제어 루프
+# Main control loop
 def main():
     cap = cv2.VideoCapture(0, cv2.CAP_V4L2)
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, 424)
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 240)
 
     if not cap.isOpened():
-        print("카메라를 열 수 없습니다.")
+        print("Cannot open camera.")
         return
 
     prev_time = time.time()
 
-    # 라이다 데이터를 저장할 큐 (최대 크기 설정으로 메모리 사용 제한)
-    lidar_queue = multiprocessing.Queue(maxsize=5)
-    # 프레임과 결과 저장을 위한 큐
-    frame_queue = multiprocessing.Queue(maxsize=1)
-    result_queue = multiprocessing.Queue(maxsize=1)
-
-    # 라이다 및 이미지 처리 프로세스 시작
-    lidar_process = multiprocessing.Process(target=get_lidar_data, args=(lidar_queue,))
-    lidar_process.start()
-
-    image_process = multiprocessing.Process(target=process_image, args=(frame_queue, result_queue))
-    image_process.start()
-
-    frame_skip_counter = 0  # 프레임 스킵 카운터
+    # Start LiDAR thread
+    lidar_thread_instance = threading.Thread(target=lidar_thread)
+    lidar_thread_instance.daemon = True
+    lidar_thread_instance.start()
 
     try:
         while True:
             ret, frame = cap.read()
             if not ret:
-                print("프레임을 가져올 수 없습니다.")
+                print("Cannot receive frame.")
                 break
 
-            # 3 프레임당 하나의 이미지 처리
-            frame_skip_counter += 1
-            if frame_skip_counter % 3 == 0:
-                if not frame_queue.full():
-                    frame_queue.put(frame)
+            current_time = time.time()
+            dt = current_time - prev_time
+            prev_time = current_time
 
-            # 이미지 처리 결과 가져오기
-            if not result_queue.empty():
-                line_center_x, diff = result_queue.get()
+            line_center_x, diff = process_image(frame)
 
-                if math.isnan(line_center_x) or math.isnan(diff):
-                    print("경고: 계산된 값이 NaN입니다.")
-                    continue
-                current_time = time.time()
-                dt = current_time - prev_time
-                prev_time = current_time
+            if math.isnan(line_center_x) or math.isnan(diff):
+                print("Warning: Computed value is NaN.")
+                continue
 
-                # 라이다 데이터 가져오기
-                if not lidar_queue.empty():
-                    distances = lidar_queue.get()
-                    front_dist = distances['front']
-                    left_dist = distances['left']
-                    right_dist = distances['right']
-                    print(f"정면 거리: {front_dist:.2f} m, 좌측 거리: {left_dist:.2f} m, 우측 거리: {right_dist:.2f} m")
-                else:
-                    front_dist = float('inf')
-                    left_dist = float('inf')
-                    right_dist = float('inf')
-
-                # 속도 계산
-                base_speed = 100
+            # Within threshold, base_speed = 50; outside threshold, base_speed = 0
+            if -60 <= diff <= 60:
+                base_speed = 100  # Maintain speed within threshold
+                pid_value = 0  # Set correction value to 0
+            else:
+                base_speed = 20  # Stop when outside threshold
                 pid_value = pid_control(diff, dt)
 
-                left_motor_speed = base_speed + pid_value
-                right_motor_speed = base_speed - pid_value
-                print(f"left : {left_motor_speed} , right : {right_motor_speed}")
+            # Calculate speeds
+            left_motor_speed = base_speed + pid_value
+            right_motor_speed = base_speed - pid_value
 
-                # 모터 제어 함수 호출
-                control_motors(left_motor_speed, right_motor_speed)
+            print(f"Left: {left_motor_speed}, Right: {right_motor_speed}")
+
+            # Access LiDAR data
+            with lidar_lock:
+                fd = front_distance
+                ld = left_distance
+                rd = right_distance
+
+            # Optionally, print or use the LiDAR data
+            print(f"Front distance: {fd * 100:.2f} cm" if fd != float('inf') else "No object detected in front.")
+            print(f"Left distance: {ld * 100:.2f} cm" if ld != float('inf') else "No object detected on the left.")
+            print(f"Right distance: {rd * 100:.2f} cm" if rd != float('inf') else "No object detected on the right.")
+
+            # Call motor control function
+            control_motors(left_motor_speed, right_motor_speed)
 
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
@@ -294,18 +225,12 @@ def main():
         motor2.cleanup()
         motor3.cleanup()
         motor4.cleanup()
-
-        # 프로세스 종료
-        lidar_process.terminate()
-        lidar_process.join()
-
-        frame_queue.put(None)  # 이미지 처리 프로세스 종료 신호
-        image_process.terminate()
-        image_process.join()
+        ydlidar.os_shutdown()  # Signal LiDAR thread to stop
 
     cap.release()
     cv2.destroyAllWindows()
 
+# Program execution
 if __name__ == "__main__":
     GPIO.setmode(GPIO.BCM)
     main()
