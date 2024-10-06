@@ -18,6 +18,9 @@ Kd = 0.04
 prev_error = 0.0
 integral = 0.0
 
+# OpenCV 최적화 설정
+cv2.setUseOptimized(True)
+
 # MotorController 클래스
 class MotorController:
     def __init__(self, en, in1, in2):
@@ -185,8 +188,6 @@ def process_image(frame_queue, result_queue):
                 x_positions.append(x_mid)
 
             x_positions.sort()
-           
-            x_positions.sort()
             num_positions = len(x_positions)
 
             if num_positions >= 2:
@@ -232,6 +233,8 @@ def main():
     image_process = multiprocessing.Process(target=process_image, args=(frame_queue, result_queue))
     image_process.start()
 
+    frame_skip_counter = 0  # 프레임 스킵 카운터
+
     try:
         while True:
             ret, frame = cap.read()
@@ -239,9 +242,11 @@ def main():
                 print("프레임을 가져올 수 없습니다.")
                 break
 
-            # 프레임을 이미지 처리 프로세스에 전달
-            if not frame_queue.full():
-                frame_queue.put(frame)
+            # 3 프레임당 하나의 이미지 처리
+            frame_skip_counter += 1
+            if frame_skip_counter % 3 == 0:
+                if not frame_queue.full():
+                    frame_queue.put(frame)
 
             # 이미지 처리 결과 가져오기
             if not result_queue.empty():
@@ -250,7 +255,6 @@ def main():
                 if math.isnan(line_center_x) or math.isnan(diff):
                     print("경고: 계산된 값이 NaN입니다.")
                     continue
-
                 current_time = time.time()
                 dt = current_time - prev_time
                 prev_time = current_time
