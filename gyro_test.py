@@ -6,7 +6,7 @@ import busio
 import math
 
 # PID 제어 상수 설정
-Kp = 0.2  # 비례 상수
+Kp = 0.3  # 비례 상수
 Ki = 0.00  # 적분 상수
 Kd = 0.0   # 미분 상수
 
@@ -77,8 +77,6 @@ def get_angle():
     angle = math.degrees(math.atan2(x, y))  # X, Y축으로 각도 계산
     return angle
 
-
-
 # PID 제어 변수 초기화
 previous_error = 0
 integral = 0
@@ -98,6 +96,10 @@ def rotate_to_angle(target_angle):
 
         # PID 제어 신호 계산
         control_signal = Kp * proportional + Ki * integral + Kd * derivative
+
+        # 디버깅 정보 출력
+        print(f"Current Angle: {current_angle:.2f}°, Error: {error:.2f}, Control Signal: {control_signal:.2f}")
+        print(f"P: {Kp * proportional:.2f}, I: {Ki * integral:.2f}, D: {Kd * derivative:.2f}")
 
         # 모터 제어 (제어 신호를 속도로 변환)
         control_motors(-control_signal, control_signal)  # 좌우 차이를 만들어 회전
