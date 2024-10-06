@@ -74,8 +74,44 @@ def get_lidar_data(scan_data, laser):
 
     return front_distance, left_distance, right_distance
 
-# 이미지 처리 함수 (생략)
+# 이미지 처리 함수
+def process_image(frame):
+    hls = cv2.cvtColor(frame, cv2.COLOR_BGR2HLS)
+    s_channel = hls[:, :, 2]
+    blurred = cv2.GaussianBlur(s_channel, (5, 5), 0)
+    canny_edges = cv2.Canny(blurred, 50, 150)
+    lines = cv2.HoughLinesP(canny_edges, 1, np.pi / 180, threshold=20, minLineLength=5, maxLineGap=10)
 
+    line_center_x, diff = None, None
+    found = False
+
+    if lines is not None:
+        x_positions = []
+        for line in lines:
+            x1, y1, x2, y2 = line[0]
+            x_mid = (x1 + x2) // 2
+            x_positions.append(x_mid)
+
+        x_positions.sort()
+        num_positions = len(x_positions)
+
+        if num_positions >= 2:
+            left_x = x_positions[0]
+            right_x = x_positions[-1]
+            line_center_x = (left_x + right_x) // 2
+            diff = line_center_x - 211
+            found = True
+        else:
+            line_center_x = x_positions[0]
+            diff = line_center_x - 211
+            found = True
+
+    if not found:
+        line_center_x = 211
+        diff = 0
+        print("선을 감지하지 못했습니다.")
+
+    return line_center_x, diff
 # 메인 제어 루프
 def main():
     cap = cv2.VideoCapture(0, cv2.CAP_V4L2)
