@@ -174,6 +174,7 @@ def lidar_thread():
                 front_distance = float('inf')
                 left_distance = float('inf')
                 right_distance = float('inf')
+                time.sleep(0.01)  # CPU 사용량 조절을 위한 딜레이
 
                 for point in scan_data.points:
                     degree_angle = math.degrees(point.angle)
