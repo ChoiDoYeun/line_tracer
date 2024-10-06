@@ -224,7 +224,7 @@ def avoid_obstacle_and_return():
         motor4.stop()
         time.sleep(0.1)
         control_motors(50,-50) # 우회전
-        time.sleep(1.15)
+        time.sleep(0.90)
         control_motors(40, 40) # 직진
         time.sleep(1.25)
         
