@@ -156,49 +156,56 @@ def get_lidar_data(lidar_queue):
             if not lidar_queue.full():
                 lidar_queue.put(distances)
 
-            time.sleep(0.05)  # 필요한 경우 수집 주기 조절
+            time.sleep(0.05)
     finally:
         laser.turnOff()
         laser.disconnecting()
 
-# 이미지 처리 함수
-def process_image(frame):
-    hls = cv2.cvtColor(frame, cv2.COLOR_BGR2HLS)
-    s_channel = hls[:, :, 2]
-    blurred = cv2.GaussianBlur(s_channel, (5, 5), 0)
-    canny_edges = cv2.Canny(blurred, 50, 150)
-    lines = cv2.HoughLinesP(canny_edges, 1, np.pi / 180, threshold=20, minLineLength=5, maxLineGap=10)
+# 이미지 처리 함수 (멀티프로세싱으로 처리)
+def process_image(frame_queue, result_queue):
+    while True:
+        frame = frame_queue.get()
+        if frame is None:
+            break
+        
+        hls = cv2.cvtColor(frame, cv2.COLOR_BGR2HLS)
+        s_channel = hls[:, :, 2]
+        blurred = cv2.GaussianBlur(s_channel, (5, 5), 0)
+        canny_edges = cv2.Canny(blurred, 50, 150)
+        lines = cv2.HoughLinesP(canny_edges, 1, np.pi / 180, threshold=20, minLineLength=5, maxLineGap=10)
 
-    line_center_x, diff = None, None
-    found = False
+        line_center_x, diff = None, None
+        found = False
 
-    if lines is not None:
-        x_positions = []
-        for line in lines:
-            x1, y1, x2, y2 = line[0]
-            x_mid = (x1 + x2) // 2
-            x_positions.append(x_mid)
+        if lines is not None:
+            x_positions = []
+            for line in lines:
+                x1, y1, x2, y2 = line[0]
+                x_mid = (x1 + x2) // 2
+                x_positions.append(x_mid)
 
-        x_positions.sort()
-        num_positions = len(x_positions)
+            x_positions.sort()
+           
+            x_positions.sort()
+            num_positions = len(x_positions)
 
-        if num_positions >= 2:
-            left_x = x_positions[0]
-            right_x = x_positions[-1]
-            line_center_x = (left_x + right_x) // 2
-            diff = line_center_x - 211
-            found = True
-        else:
-            line_center_x = x_positions[0]
-            diff = line_center_x - 211
-            found = True
+            if num_positions >= 2:
+                left_x = x_positions[0]
+                right_x = x_positions[-1]
+                line_center_x = (left_x + right_x) // 2
+                diff = line_center_x - 211
+                found = True
+            else:
+                line_center_x = x_positions[0]
+                diff = line_center_x - 211
+                found = True
 
-    if not found:
-        line_center_x = 211
-        diff = 0
-        print("선을 감지하지 못했습니다.")
+        if not found:
+            line_center_x = 211
+            diff = 0
+            print("선을 감지하지 못했습니다.")
 
-    return line_center_x, diff
+        result_queue.put((line_center_x, diff))
 
 # 메인 제어 루프
 def main():
@@ -214,10 +221,16 @@ def main():
 
     # 라이다 데이터를 저장할 큐 (최대 크기 설정으로 메모리 사용 제한)
     lidar_queue = multiprocessing.Queue(maxsize=5)
+    # 프레임과 결과 저장을 위한 큐
+    frame_queue = multiprocessing.Queue(maxsize=1)
+    result_queue = multiprocessing.Queue(maxsize=1)
 
-    # 라이다 프로세스 시작
+    # 라이다 및 이미지 처리 프로세스 시작
     lidar_process = multiprocessing.Process(target=get_lidar_data, args=(lidar_queue,))
     lidar_process.start()
+
+    image_process = multiprocessing.Process(target=process_image, args=(frame_queue, result_queue))
+    image_process.start()
 
     try:
         while True:
@@ -226,38 +239,44 @@ def main():
                 print("프레임을 가져올 수 없습니다.")
                 break
 
-            current_time = time.time()
-            dt = current_time - prev_time
-            prev_time = current_time
+            # 프레임을 이미지 처리 프로세스에 전달
+            if not frame_queue.full():
+                frame_queue.put(frame)
 
-            line_center_x, diff = process_image(frame)
+            # 이미지 처리 결과 가져오기
+            if not result_queue.empty():
+                line_center_x, diff = result_queue.get()
 
-            if math.isnan(line_center_x) or math.isnan(diff):
-                print("경고: 계산된 값이 NaN입니다.")
-                continue
+                if math.isnan(line_center_x) or math.isnan(diff):
+                    print("경고: 계산된 값이 NaN입니다.")
+                    continue
 
-            # 라이다 데이터 가져오기
-            if not lidar_queue.empty():
-                distances = lidar_queue.get()
-                front_dist = distances['front']
-                left_dist = distances['left']
-                right_dist = distances['right']
-                print(f"정면 거리: {front_dist:.2f} m, 좌측 거리: {left_dist:.2f} m, 우측 거리: {right_dist:.2f} m")
-            else:
-                front_dist = float('inf')
-                left_dist = float('inf')
-                right_dist = float('inf')
+                current_time = time.time()
+                dt = current_time - prev_time
+                prev_time = current_time
 
-            # 속도 계산
-            base_speed = 100
-            pid_value = pid_control(diff, dt)
+                # 라이다 데이터 가져오기
+                if not lidar_queue.empty():
+                    distances = lidar_queue.get()
+                    front_dist = distances['front']
+                    left_dist = distances['left']
+                    right_dist = distances['right']
+                    print(f"정면 거리: {front_dist:.2f} m, 좌측 거리: {left_dist:.2f} m, 우측 거리: {right_dist:.2f} m")
+                else:
+                    front_dist = float('inf')
+                    left_dist = float('inf')
+                    right_dist = float('inf')
 
-            left_motor_speed = base_speed + pid_value
-            right_motor_speed = base_speed - pid_value
-            print(f"left : {left_motor_speed} , right : {right_motor_speed}")
+                # 속도 계산
+                base_speed = 100
+                pid_value = pid_control(diff, dt)
 
-            # 모터 제어 함수 호출
-            control_motors(left_motor_speed, right_motor_speed)
+                left_motor_speed = base_speed + pid_value
+                right_motor_speed = base_speed - pid_value
+                print(f"left : {left_motor_speed} , right : {right_motor_speed}")
+
+                # 모터 제어 함수 호출
+                control_motors(left_motor_speed, right_motor_speed)
 
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
@@ -271,13 +290,18 @@ def main():
         motor2.cleanup()
         motor3.cleanup()
         motor4.cleanup()
+
+        # 프로세스 종료
         lidar_process.terminate()
         lidar_process.join()
+
+        frame_queue.put(None)  # 이미지 처리 프로세스 종료 신호
+        image_process.terminate()
+        image_process.join()
 
     cap.release()
     cv2.destroyAllWindows()
 
-# 프로그램 실행
 if __name__ == "__main__":
     GPIO.setmode(GPIO.BCM)
     main()
