@@ -144,15 +144,15 @@ def get_lidar_data(lidar_queue):
                     if 0.01 <= point.range <= 8.0:
 
                         # 정면 (0도)
-                        if -15 <= degree_angle <= 15:
+                        if -10 <= degree_angle <= 10:
                             front_distance = min(front_distance, point.range)
 
                         # 우측 (90도)
-                        if 75 <= degree_angle <= 105:
+                        if 80 <= degree_angle <= 100:
                             right_distance = min(right_distance, point.range)
 
                         # 좌측 (-90도)
-                        if -105 <= degree_angle <= -75:
+                        if -100 <= degree_angle <= -80:
                             left_distance = min(left_distance, point.range)
 
             distances = {'front': front_distance, 'left': left_distance, 'right': right_distance}
@@ -190,7 +190,7 @@ def process_image(frame_queue, result_queue):
             x_positions.sort()
             num_positions = len(x_positions)
 
-            if num_positions >= 2:
+            if num_positions >= 1:
                 left_x = x_positions[0]
                 right_x = x_positions[-1]
                 line_center_x = (left_x + right_x) // 2
