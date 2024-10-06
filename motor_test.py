@@ -67,14 +67,14 @@ def control_motors(left_speed, right_speed):
 
 try:
     control_motors(-100, 100)
-    time.sleep(0.4)
+    time.sleep(0.8)
     motor1.stop()
     motor2.stop()
     motor3.stop()
     motor4.stop()
     time.sleep(0.5)
     control_motors(100, -100)  # 우회전
-    time.sleep(0.80)
+    time.sleep(0.16)
 
 
 finally:
