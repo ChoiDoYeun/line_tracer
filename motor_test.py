@@ -67,7 +67,7 @@ def control_motors(left_speed, right_speed):
 
 try:
     control_motors(-50, 50)
-    time.sleep(1)
+    time.sleep(1.25)
     
 
 
