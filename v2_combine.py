@@ -219,7 +219,7 @@ def avoid_obstacle_and_return():
         control_motors(40, 40)
         time.sleep(1)
         control_motors(50,-50)
-        time.sleep(0.5)
+        time.sleep(1)
         control_motors(40, 40)
         time.sleep(1)
     else:
@@ -230,7 +230,7 @@ def avoid_obstacle_and_return():
         control_motors(40, 40)
         time.sleep(1)
         control_motors(-50,50)
-        time.sleep(0.5)
+        time.sleep(1)
         control_motors(40, 40)
         time.sleep(1)
     
