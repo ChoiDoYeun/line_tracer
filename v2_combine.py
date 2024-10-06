@@ -16,7 +16,78 @@ Kd = 0.04
 prev_error = 0.0
 integral = 0.0
 
-# MotorController 클래스 (생략)
+# MotorController 클래스
+class MotorController:
+    def __init__(self, en, in1, in2):
+        self.en = en
+        self.in1 = in1
+        self.in2 = in2
+        GPIO.setup(self.en, GPIO.OUT)
+        GPIO.setup(self.in1, GPIO.OUT)
+        GPIO.setup(self.in2, GPIO.OUT)
+        self.pwm = GPIO.PWM(self.en, 100)
+        self.pwm.start(0)
+
+    def set_speed(self, speed):
+        speed = max(min(speed, 60), -60)
+        self.pwm.ChangeDutyCycle(abs(speed))
+
+    def forward(self, speed=40):
+        self.set_speed(speed)
+        GPIO.output(self.in1, GPIO.HIGH)
+        GPIO.output(self.in2, GPIO.LOW)
+
+    def backward(self, speed=40):
+        self.set_speed(speed)
+        GPIO.output(self.in1, GPIO.LOW)
+        GPIO.output(self.in2, GPIO.HIGH)
+
+    def stop(self):
+        self.set_speed(0)
+        GPIO.output(self.in1, GPIO.LOW)
+        GPIO.output(self.in2, GPIO.LOW)
+
+    def cleanup(self):
+        self.pwm.stop()
+        GPIO.cleanup([self.en, self.in1, self.in2])
+
+GPIO.setmode(GPIO.BCM)
+
+# 모터 초기화
+motor1 = MotorController(18, 17, 27)  # left front
+motor2 = MotorController(22, 23, 24)  # right front
+motor3 = MotorController(9, 10, 11)   # left back
+motor4 = MotorController(25, 8, 7)    # right back
+
+# PID 제어 함수
+def pid_control(error, dt):
+    global prev_error, integral
+    
+    proportional = error
+    integral += error * dt
+    derivative = (error - prev_error) / dt if dt > 0 else 0
+    prev_error = error
+
+    return Kp * proportional + Ki * integral + Kd * derivative
+
+# 모터 제어 함수
+def control_motors(left_speed, right_speed):
+    left_speed = max(min(left_speed, 100), -100)
+    right_speed = max(min(right_speed, 100), -100)
+
+    if left_speed >= 0:
+        motor1.forward(left_speed)
+        motor3.forward(left_speed)
+    else:
+        motor1.backward(-left_speed)
+        motor3.backward(-left_speed)
+
+    if right_speed >= 0:
+        motor2.forward(right_speed)
+        motor4.forward(right_speed)
+    else:
+        motor2.backward(-right_speed)
+        motor4.backward(-right_speed)
 
 # Lidar 초기화 함수
 def init_lidar():
