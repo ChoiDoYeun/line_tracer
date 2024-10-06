@@ -11,7 +11,7 @@ sys.path.append('/home/dodo/YDLidar-SDK/build/python')  # Adjust the path if nec
 import ydlidar
 
 # PID constants
-Kp = 0.40
+Kp = 0.50
 Ki = 0.00
 Kd = 0.04
 
