@@ -5,11 +5,6 @@ import board
 import busio
 import math
 
-# PID 제어 상수 설정
-Kp = 1.00  # 비례 상수
-Ki = 0.00  # 적분 상수
-Kd = 0.0   # 미분 상수
-
 # 자이로 센서 초기화
 i2c = busio.I2C(board.SCL, board.SDA)
 imu = adafruit_adxl34x.ADXL345(i2c, address=0x1D)
@@ -70,44 +65,32 @@ def control_motors(left_speed, right_speed):
         motor2.backward(-right_speed)
         motor4.backward(-right_speed)
 
-# 현재 각도를 추적하기 위한 변수 초기화
-current_angle = 0
-last_time = time.time()
-
+# 각도 계산 함수
 def get_current_angle():
-    global current_angle, last_time
-    now = time.time()
-    dt = now - last_time
-    last_time = now
-    # 자이로 센서에서 Z축 각속도 읽기 (라디안/초)
-    gyro_z = imu.gyro[2]
-    # 각속도를 적분하여 각도 계산 (도 단위로 변환)
-    current_angle += math.degrees(gyro_z * dt)
-    return current_angle
+    accel_x, accel_y, accel_z = imu.acceleration
+    # X, Y 축의 가속도 값을 통해 각도를 계산 (예: 피치 각도)
+    pitch = math.atan2(accel_y, math.sqrt(accel_x**2 + accel_z**2)) * 180 / math.pi
+    return pitch
 
-def rotate_to_angle(target_angle):
-    angle_tolerance = 5  # 허용 오차 (도)
-    speed = 50  # 모터 속도
+# 회전 각도 제어 함수 (피드백 제어)
+def turn_to_angle(target_angle, speed=30, tolerance=2):
     current_angle = get_current_angle()
-    while abs(current_angle - target_angle) > angle_tolerance:
-        if current_angle < target_angle:
-            # 시계 방향 회전
-            control_motors(left_speed=speed, right_speed=-speed)
+    
+    while abs(target_angle - current_angle) > tolerance:
+        error = target_angle - current_angle
+        
+        # PID 제어로 속도 조정 가능 (간단히 proportional 제어)
+        turn_speed = error * 0.5  # P 제어 계수 0.5로 설정
+        
+        if turn_speed > 0:
+            control_motors(turn_speed, -turn_speed)  # 좌회전
         else:
-            # 반시계 방향 회전
-            control_motors(left_speed=-speed, right_speed=speed)
-        time.sleep(0.01)  # 작은 딜레이
-        current_angle = get_current_angle()
-    # 목표 각도에 도달하면 모터 정지
-    control_motors(0, 0)
+            control_motors(-turn_speed, turn_speed)  # 우회전
+        
+        current_angle = get_current_angle()  # 각도 업데이트
+        time.sleep(0.1)
+    
+    control_motors(0, 0)  # 회전 후 모터 정지
 
-# 예제 사용법: 로봇을 90도 회전시키기
-try:
-    rotate_to_angle(90)
-finally:
-    # 프로그램 종료 시 리소스 정리
-    motor1.cleanup()
-    motor2.cleanup()
-    motor3.cleanup()
-    motor4.cleanup()
-    GPIO.cleanup()
+# 예시: 90도 회전
+turn_to_angle(90)
