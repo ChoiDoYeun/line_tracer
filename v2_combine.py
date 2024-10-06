@@ -295,6 +295,9 @@ def avoid_obstacle_and_return():
 
     return
 
+# 장애물 감지 임계값 (단위: 미터)
+OBSTACLE_THRESHOLD = 0.6  # 60cm
+
 # 메인 제어 루프
 def main():
     cap = cv2.VideoCapture(0, cv2.CAP_V4L2)
