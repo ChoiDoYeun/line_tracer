@@ -66,15 +66,15 @@ def control_motors(left_speed, right_speed):
         motor4.backward(-right_speed)
 
 try:
-    control_motors(-50, 50)
-    time.sleep(0.8)
+    control_motors(-100, 100)
+    time.sleep(0.4)
     motor1.stop()
     motor2.stop()
     motor3.stop()
     motor4.stop()
-    time.sleep(0.1)
-    control_motors(50, -50)  # 우회전
-    time.sleep(1.20)
+    time.sleep(0.5)
+    control_motors(100, -100)  # 우회전
+    time.sleep(0.80)
 
 
 finally:
