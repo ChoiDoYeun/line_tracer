@@ -215,13 +215,13 @@ def avoid_obstacle_and_return():
         print("좌측 회피")
         # 좌측으로 회피하며 대각선 이동
         control_motors(-50, 50) # 좌회전
-        time.sleep(1)  # 회피 시간 설정
+        time.sleep(0.75)  # 회피 시간 설정
         control_motors(40, 40) # 직진
         time.sleep(1)
         control_motors(50,-50) # 우회전
         time.sleep(1)
         control_motors(40, 40) # 직진
-        time.sleep(0.5)
+        time.sleep(0.75)
         control_motors(50,-50) # 우회전
         time.sleep(1)
         control_motors(40, 40) # 직진
