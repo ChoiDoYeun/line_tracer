@@ -43,7 +43,7 @@ class MotorController:
     def cleanup(self):
         self.pwm.stop()
         GPIO.cleanup([self.en, self.in1, self.in2])
-        
+
 # 모터 컨트롤러 초기화
 motor1 = MotorController(18, 17, 27)
 motor2 = MotorController(22, 23, 24)
@@ -51,9 +51,6 @@ motor3 = MotorController(9, 10, 11)
 motor4 = MotorController(25, 8, 7)
 
 def control_motors(left_speed, right_speed):
-    left_speed = max(min(left_speed, 100), -100)
-    right_speed = max(min(right_speed, 100), -100)
-
     if left_speed >= 0:
         motor1.forward(left_speed)
         motor3.forward(left_speed)
@@ -80,10 +77,10 @@ def rotate_to_angle(target_angle):
     current_angle = get_angle()
     while abs(current_angle - target_angle) > 1:  # 목표 각도에 도달할 때까지 회전
         if current_angle < target_angle:
-            control_motors(-100, 100)  # 좌회전
+            control_motors(-50, 50)  # 좌회전
         else:
-            control_motors(100, -100)  # 우회전
-        time.sleep(0.51)
+            control_motors(50, -50)  # 우회전
+        time.sleep(0.01)  # 자주 업데이트하여 각도를 추적
         current_angle = get_angle()
 
     control_motors(0, 0)  # 회전 후 정지
