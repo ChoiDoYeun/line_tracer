@@ -46,12 +46,28 @@ motor2 = MotorController(22, 23, 24) # right front
 motor3 = MotorController(9, 10, 11)  # left back
 motor4 = MotorController(25, 8, 7)   # right back
 
+# 모터 제어 함수
+def control_motors(left_speed, right_speed):
+    left_speed = max(min(left_speed, 100), -100)
+    right_speed = max(min(right_speed, 100), -100)
+
+    if left_speed >= 0:
+        motor1.forward(left_speed)
+        motor3.forward(left_speed)
+    else:
+        motor1.backward(-left_speed)
+        motor3.backward(-left_speed)
+
+    if right_speed >= 0:
+        motor2.forward(right_speed)
+        motor4.forward(right_speed)
+    else:
+        motor2.backward(-right_speed)
+        motor4.backward(-right_speed)
+
 try:
-    motor1.forward(50)
-    motor2.backward(50)
-    motor3.forward(50)
-    motor4.backward(50)
-    time.sleep(2)
+    control_motors(-50, 50)
+    time.sleep(1)
     
 
 
