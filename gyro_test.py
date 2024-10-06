@@ -1,6 +1,7 @@
 import board
 import busio
 import adafruit_adxl34x
+import time
 
 # I2C 초기화
 i2c = busio.I2C(board.SCL, board.SDA)
