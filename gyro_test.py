@@ -12,7 +12,7 @@ Kd = 0.0   # 미분 상수
 
 # 자이로 센서 초기화
 i2c = busio.I2C(board.SCL, board.SDA)
-accelerometer = adafruit_adxl34x.ADXL345(i2c, address=0x1D)
+imu = adafruit_adxl34x.ADXL345(i2c, address=0x1D)
 
 # MotorController 클래스 (기존 코드 동일)
 class MotorController:
