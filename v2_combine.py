@@ -196,7 +196,6 @@ def lidar_thread():
         laser.turnOff()
     laser.disconnecting()
 
-# 장애물 감지 후 라인 복귀 함수
 # 장애물 회피 후 라인 복귀 함수
 def avoid_obstacle_and_return():
     # 1. 좌우측 거리 측정
@@ -206,129 +205,151 @@ def avoid_obstacle_and_return():
     print(f"장애물 회피 중: 좌측 거리 {ld}m, 우측 거리 {rd}m")
     
     # 2. 넓은 쪽의 거리가 40cm가 될 때까지 회전
+    rotation_time = 0
+    rotation_start_time = time.time()
     if ld > rd:
         print("좌측 회피 시작")
         while ld > 0.4:
             control_motors(-50, 50)  # 좌측으로 회전
             with lidar_lock:
                 ld = left_distance
-        motor1.stop()
-        motor2.stop()
-        motor3.stop()
-        motor4.stop()
-        time.sleep(0.01)
+            time.sleep(0.01)
+        rotation_time = time.time() - rotation_start_time
     else:
         print("우측 회피 시작")
         while rd > 0.4:
             control_motors(50, -50)  # 우측으로 회전
             with lidar_lock:
-                rd = right_distance      
-        motor1.stop()
-        motor2.stop()
-        motor3.stop()
-        motor4.stop()
-        time.sleep(0.01)
-
-    # 3. 넓은 쪽의 거리가 100cm가 될 때까지 직진
-    while True:
-        control_motors(40, 40)  # 직진
-        with lidar_lock:
-            if (ld > 1.0 or rd > 1.0):  # 넓은 쪽 거리가 100cm를 넘으면
-                break
-        time.sleep(0.1)
-
+                rd = right_distance
+            time.sleep(0.01)
+        rotation_time = time.time() - rotation_start_time
+    
+    # 모터 정지
     motor1.stop()
     motor2.stop()
     motor3.stop()
     motor4.stop()
-    time.sleep(0.01)
+    time.sleep(0.1)
+    
+    # 3. 넓은 쪽의 거리가 100cm가 넘어갈 때까지 직진
+    if ld > rd:
+        print("직진 중: 좌측 거리 체크")
+        while ld <= 1.0:
+            control_motors(40, 40)  # 직진
+            with lidar_lock:
+                ld = left_distance
+            time.sleep(0.1)
+    else:
+        print("직진 중: 우측 거리 체크")
+        while rd <= 1.0:
+            control_motors(40, 40)  # 직진
+            with lidar_lock:
+                rd = right_distance
+            time.sleep(0.1)
+    
+    # 모터 정지
+    motor1.stop()
+    motor2.stop()
+    motor3.stop()
+    motor4.stop()
+    time.sleep(0.1)
     
     # 4. 회전한 만큼 반대 방향으로 회전
+    print("반대 방향으로 회전하여 경로 복귀")
     if ld > rd:
-        print("우측 회전하여 라인 복귀")
-        control_motors(50, -50)
-        time.sleep(0.65)  # 이전 회전 만큼 반대 회전
+        control_motors(50, -50)  # 우측 회전
     else:
-        print("좌측 회전하여 라인 복귀")
-        control_motors(-50, 50)
-        time.sleep(0.65)
+        control_motors(-50, 50)  # 좌측 회전
+    time.sleep(rotation_time)
     
+    # 모터 정지
     motor1.stop()
     motor2.stop()
     motor3.stop()
     motor4.stop()
-    time.sleep(0.01)
+    time.sleep(0.1)
     
     # 5. 반대쪽 거리가 급격히 늘어날 때까지 직진
+    print("반대쪽 거리가 늘어날 때까지 직진")
     while True:
         control_motors(40, 40)  # 직진
         with lidar_lock:
-            if ld > rd and rd > 1.0:  # 우측 거리가 급격히 늘어날 때까지
-                break
-            elif rd > ld and ld > 1.0:  # 좌측 거리가 급격히 늘어날 때까지
-                break
-        time.sleep(0.1)   
-
-    motor1.stop()
-    motor2.stop()
-    motor3.stop()
-    motor4.stop()
-    time.sleep(0.01)
-
-    # 6. 반대 방향으로 회전
-    if ld > rd:
-        print("우측으로 회전하여 경로 조정")
-        control_motors(50, -50)
-        time.sleep(0.65)
-    else:
-        print("좌측으로 회전하여 경로 조정")
-        control_motors(-50, 50)
-        time.sleep(0.65)
-    
-
-    motor1.stop()
-    motor2.stop()
-    motor3.stop()
-    motor4.stop()
-    time.sleep(0.01)
-
-    # 7. 반대쪽 거리가 급격히 줄어들 때까지 직진
-    while True:
-        control_motors(40, 40)  # 직진
-        with lidar_lock:
-            if ld > rd and rd < 0.4:  # 우측 거리가 급격히 줄어들 때까지
-                break
-            elif rd > ld and ld < 0.4:  # 좌측 거리가 급격히 줄어들 때까지
-                break
+            ld = left_distance
+            rd = right_distance
+        if ld > rd and rd > 1.0:
+            break  # 좌측 회피 시 우측 거리 체크
+        elif rd > ld and ld > 1.0:
+            break  # 우측 회피 시 좌측 거리 체크
         time.sleep(0.1)
     
-
+    # 모터 정지
     motor1.stop()
     motor2.stop()
     motor3.stop()
     motor4.stop()
-    time.sleep(0.01)
-
-    # 8. 좌우측 거리 측정하여 좁은 쪽 거리가 1m 이상이 될 때까지 회전
+    time.sleep(0.1)
+    
+    # 6. 4번과 동일 (반대 방향으로 회전)
+    print("다시 반대 방향으로 회전")
+    if ld > rd:
+        control_motors(50, -50)  # 우측 회전
+    else:
+        control_motors(-50, 50)  # 좌측 회전
+    time.sleep(rotation_time)
+    
+    # 모터 정지
+    motor1.stop()
+    motor2.stop()
+    motor3.stop()
+    motor4.stop()
+    time.sleep(0.1)
+    
+    # 7. 반대쪽 거리가 급격히 줄어들 때까지 직진
+    print("반대쪽 거리가 줄어들 때까지 직진")
+    while True:
+        control_motors(40, 40)  # 직진
+        with lidar_lock:
+            ld = left_distance
+            rd = right_distance
+        if ld > rd and rd < 0.4:
+            break  # 좌측 회피 시 우측 거리 체크
+        elif rd > ld and ld < 0.4:
+            break  # 우측 회피 시 좌측 거리 체크
+        time.sleep(0.1)
+    
+    # 모터 정지
+    motor1.stop()
+    motor2.stop()
+    motor3.stop()
+    motor4.stop()
+    time.sleep(0.1)
+    
+    # 8. 좌우측 거리 측정하여 좁은 쪽의 거리가 1m 이상이 될 때까지 회전
+    print("좁은 쪽 거리가 1m 이상이 될 때까지 회전")
     while True:
         with lidar_lock:
-            if ld < rd and ld > 1.0:
-                control_motors(-50, 50)  # 좌측 회전
-            elif rd < ld and rd > 1.0:
-                control_motors(50, -50)  # 우측 회전
-            else:
-                break
-
+            ld = left_distance
+            rd = right_distance
+        if ld < rd and ld <= 1.0:
+            control_motors(-50, 50)  # 좌측 회전
+        elif rd < ld and rd <= 1.0:
+            control_motors(50, -50)  # 우측 회전
+        else:
+            break
+        time.sleep(0.1)
+    
+    # 모터 정지
     motor1.stop()
     motor2.stop()
     motor3.stop()
     motor4.stop()
-    time.sleep(0.01)
-
+    time.sleep(0.1)
+    
+    print("장애물 회피 완료, 라인 추종 모드로 복귀")
     return
     
 # 장애물 감지 임계값 (단위: 미터)
-OBSTACLE_THRESHOLD = 0.6  # 50cm
+OBSTACLE_THRESHOLD = 0.6  # 60cm
 
 # 메인 제어 루프
 def main():
