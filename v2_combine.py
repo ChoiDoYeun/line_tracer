@@ -208,7 +208,7 @@ def avoid_obstacle_and_return():
     motor3.stop()
     motor4.stop()
     time.sleep(1)
-   
+   print(f"ld : {ld}, rd : {rd}")
     
     # 더 넓은 쪽으로 회피
     if ld > rd:
