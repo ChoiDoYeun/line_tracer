@@ -78,16 +78,18 @@ def rotate_to_angle(target_angle):
     while abs(current_angle - target_angle) > 1:  # 목표 각도에 도달할 때까지 회전
         if current_angle < target_angle:
             control_motors(-50, 50)  # 좌회전
+            time.sleep(0.5)  # 자주 업데이트하여 각도를 추적
         else:
             control_motors(50, -50)  # 우회전
-        time.sleep(0.5)  # 자주 업데이트하여 각도를 추적
+            time.sleep(0.5)  # 자주 업데이트하여 각도를 추적
+        time.sleep(0.05)  # 자주 업데이트하여 각도를 추적
         current_angle = get_angle()
 
     control_motors(0, 0)  # 회전 후 정지
 
 try:
     # 45도 회전
-    rotate_to_angle(45)
+    rotate_to_angle(30)
 finally:
     motor1.cleanup()
     motor2.cleanup()
