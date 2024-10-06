@@ -1,15 +1,11 @@
-from mpu6050 import mpu6050
-import time
+import board
+import busio
+import adafruit_adxl34x
 
-# 센서 초기화 (주소 0x1d 사용)
-sensor = mpu6050(0x1d)
-sensor.reset()
+# I2C 초기화
+i2c = busio.I2C(board.SCL, board.SDA)
+accelerometer = adafruit_adxl34x.ADXL345(i2c)
 
+# 가속도 데이터 읽기
 while True:
-    accel_data = sensor.get_accel_data()
-    gyro_data = sensor.get_gyro_data()
-    
-    print(f"Accelerometer: {accel_data}")
-    print(f"Gyroscope: {gyro_data}")
-    
-    time.sleep(0.01)
+    print("X: {0}, Y: {1}, Z: {2}".format(*accelerometer.acceleration))
