@@ -242,7 +242,7 @@ def avoid_obstacle_and_return(cap):
     if ld > rd:
         print("좌측 회피")
         control_motors(-50, 50)  # 좌회전
-        time.sleep(0.60)  # 회피 시간 설정
+        time.sleep(0.80)  # 회피 시간 설정
         control_motors(40, 40)  # 직진
         time.sleep(1.25)
         motor1.stop()
@@ -258,7 +258,7 @@ def avoid_obstacle_and_return(cap):
         motor4.stop()
         time.sleep(0.1)
         control_motors(40, 40)  # 직진
-        time.sleep(1.5)
+        time.sleep(1.25)
         
         motor1.stop()
         motor2.stop()
