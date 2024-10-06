@@ -106,7 +106,7 @@ def control_motors(left_speed, right_speed):
 def process_image(frame):
     height, width = frame.shape[:2]
     roi = frame[int(height*0.5):height, 0:width]
-    
+
     hls = cv2.cvtColor(roi, cv2.COLOR_BGR2HLS)
     s_channel = hls[:, :, 2]
     blurred = cv2.GaussianBlur(s_channel, (5, 5), 0)
@@ -130,15 +130,15 @@ def process_image(frame):
             left_x = x_positions[0]
             right_x = x_positions[-1]
             line_center_x = (left_x + right_x) // 2
-            diff = line_center_x - 211
+            diff = line_center_x - (width // 2)
             found = True
         else:
             line_center_x = x_positions[0]
-            diff = line_center_x - 211
+            diff = line_center_x - (width // 2)
             found = True
 
     if not found:
-        line_center_x = 211
+        line_center_x = width // 2
         diff = 0
         print("선을 감지하지 못했습니다.")
 
@@ -196,10 +196,53 @@ def lidar_thread():
         laser.turnOff()
     laser.disconnecting()
 
+# 장애물 감지 후 라인 복귀 함수
+def avoid_obstacle_and_return():
+    # LiDAR 데이터 확인
+    with lidar_lock:
+        ld = left_distance
+        rd = right_distance
+    
+    # 더 넓은 쪽으로 회피
+    if ld > rd:
+        print("좌측 회피")
+        # 좌측으로 회피하며 대각선 이동
+        control_motors(-30, 30)
+        time.sleep(0.5)  # 회피 시간 설정
+    else:
+        print("우측 회피")
+        # 우측으로 회피하며 대각선 이동
+        control_motors(30, -30)
+        time.sleep(0.5)  # 회피 시간 설정
+
+    # 회피 후 직진하며 다시 라인 탐색
+    print("직진하며 라인 복귀 시도 중...")
+    control_motors(40, 40)
+    time.sleep(1)  # 라인 복귀 전 직진 시간 설정
+
+    # 라인 탐색
+    while True:
+        ret, frame = cap.read()
+        if not ret:
+            print("Cannot receive frame.")
+            break
+
+        line_center_x, diff = process_image(frame)
+        if -60 <= diff <= 60:  # 라인을 찾았을 경우
+            print("라인 발견, 라인 추종 모드 복귀")
+            break
+
+        # 라인을 찾을 때까지 계속 직진
+        control_motors(40, 40)
+        time.sleep(0.1)
+
+    # 라인 추종 모드로 복귀
+    return
+
 # 장애물 감지 임계값 (단위: 미터)
 OBSTACLE_THRESHOLD = 0.5  # 50cm
 
-# 메인 제어 루프 수정
+# 메인 제어 루프
 def main():
     cap = cv2.VideoCapture(0, cv2.CAP_V4L2)
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, 424)
@@ -230,34 +273,14 @@ def main():
             # LiDAR 데이터 접근
             with lidar_lock:
                 fd = front_distance
-                ld = left_distance
-                rd = right_distance
 
             # 장애물 감지 여부 판단
             obstacle_detected = fd < OBSTACLE_THRESHOLD
 
             if obstacle_detected:
-                # 장애물 회피 동작
-                print("장애물 감지! 회피 동작 수행 중...")
-                if ld > rd:
-                    # 좌측 회피
-                    left_motor_speed = -30  # 좌회전
-                    right_motor_speed = 30
-                else:
-                    # 우측 회피
-                    left_motor_speed = 30
-                    right_motor_speed = -30  # 우회전
-
-                # 모터 제어 함수 호출
-                control_motors(left_motor_speed, right_motor_speed)
-                time.sleep(0.5)  # 회피 동작 지속 시간 조절
-
-                # 회피 후 잠시 직진
-                control_motors(40, 40)
-                time.sleep(0.5)
-
-                # 원래 라인으로 복귀하기 위해 계속 진행
-                continue
+                print("장애물 감지, 회피 동작 시작")
+                avoid_obstacle_and_return()
+                continue  # 회피 후 라인 복귀 후 루프 재시작
 
             # 라인 추종 모드
             line_center_x, diff = process_image(frame)
@@ -296,7 +319,8 @@ def main():
     cap.release()
     cv2.destroyAllWindows()
 
-# Program execution
+# 프로그램 실행
 if __name__ == "__main__":
     GPIO.setmode(GPIO.BCM)
     main()
+
