@@ -215,7 +215,7 @@ def avoid_obstacle_and_return():
         print("좌측 회피")
         # 좌측으로 회피하며 대각선 이동
         control_motors(-50, 50) # 좌회전
-        time.sleep(0.75)  # 회피 시간 설정
+        time.sleep(0.65)  # 회피 시간 설정
         control_motors(40, 40) # 직진
         time.sleep(0.75)
         motor1.stop()
@@ -224,25 +224,30 @@ def avoid_obstacle_and_return():
         motor4.stop()
         time.sleep(0.1)
         control_motors(50,-50) # 우회전
-        time.sleep(0.75)
+        time.sleep(0.65)
         control_motors(40, 40) # 직진
         time.sleep(1)
+        
         motor1.stop()
         motor2.stop()
         motor3.stop()
         motor4.stop()
         time.sleep(0.1)
+        
         control_motors(50,-50) # 우회전
-        time.sleep(0.75)
+        time.sleep(0.65)
         control_motors(40, 40) # 직진
         time.sleep(1)
+        
         motor1.stop()
         motor2.stop()
         motor3.stop()
         motor4.stop()
         time.sleep(0.1)
+        
         control_motors(-50, 50) # 좌회전
-        time.sleep(0.75)
+        time.sleep(0.55)
+        
         motor1.stop()
         motor2.stop()
         motor3.stop()
@@ -252,14 +257,45 @@ def avoid_obstacle_and_return():
     else:
         print("우측 회피")
         # 우측으로 회피하며 대각선 이동
-        control_motors(50, -50)
-        time.sleep(1)  # 회피 시간 설정
-        control_motors(40, 40)
+        control_motors(50, -50) # 우회전
+        time.sleep(0.65)  # 회피 시간 설정
+        control_motors(40, 40) # 직진
+        time.sleep(0.75)
+        motor1.stop()
+        motor2.stop()
+        motor3.stop()
+        motor4.stop()
+        time.sleep(0.1)
+        control_motors(-50,50) # 좌회전
+        time.sleep(0.65)
+        control_motors(40, 40) # 직진
         time.sleep(1)
-        control_motors(-50,50)
+        
+        motor1.stop()
+        motor2.stop()
+        motor3.stop()
+        motor4.stop()
+        time.sleep(0.1)
+        
+        control_motors(-50,+50) # 좌회전
+        time.sleep(0.65)
+        control_motors(40, 40) # 직진
         time.sleep(1)
-        control_motors(40, 40)
-        time.sleep(1)
+        
+        motor1.stop()
+        motor2.stop()
+        motor3.stop()
+        motor4.stop()
+        time.sleep(0.1)
+        
+        control_motors(50, -50) # 우회전
+        time.sleep(0.55)
+        
+        motor1.stop()
+        motor2.stop()
+        motor3.stop()
+        motor4.stop()
+        time.sleep(0.1)     
     
     time.sleep(1)  # 라인 복귀 전 직진 시간 설정
 
