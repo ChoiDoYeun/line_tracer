@@ -75,7 +75,7 @@ def get_current_angle():
 # 회전 각도 제어 함수 (피드백 제어)
 def turn_to_angle(target_angle, speed=30, tolerance=5):
     current_angle = get_current_angle()
-    print (f"current_angle : {current_angle}")
+    print (f"init_angle : {current_angle}")
     while abs(target_angle - current_angle) > tolerance:
         error = target_angle - current_angle
 
