@@ -27,6 +27,10 @@ right_distance = float('inf')
 # Lock for synchronizing access to shared variables
 lidar_lock = threading.Lock()
 
+# GPIO 경고 메시지 비활성화
+GPIO.setwarnings(False)
+GPIO.setmode(GPIO.BCM)
+
 # MotorController 클래스
 class MotorController:
     def __init__(self, en, in1, in2):
@@ -61,8 +65,6 @@ class MotorController:
     def cleanup(self):
         self.pwm.stop()
         GPIO.cleanup([self.en, self.in1, self.in2])
-
-GPIO.setmode(GPIO.BCM)
 
 # 모터 초기화
 motor1 = MotorController(18, 17, 27)  # left front
