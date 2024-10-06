@@ -6,6 +6,8 @@ import RPi.GPIO as GPIO
 import sys
 sys.path.append('/home/dodo/YDLidar-SDK/build/python')
 import ydlidar
+import threading
+
 
 # PID 상수
 Kp = 0.22
@@ -120,30 +122,34 @@ def init_lidar():
         return None, None
 
 # Lidar 데이터 수집 함수
-def get_lidar_data(scan_data, laser):
-    r = laser.doProcessSimple(scan_data)
-    front_distance = float('inf')  # 정면 거리
-    left_distance = float('inf')   # 좌측 거리
-    right_distance = float('inf')  # 우측 거리
+def get_lidar_data(scan_data, laser, distances):
+    while True:
+        r = laser.doProcessSimple(scan_data)
+        front_distance = float('inf')  # 정면 거리
+        left_distance = float('inf')   # 좌측 거리
+        right_distance = float('inf')  # 우측 거리
 
-    if r:
-        for point in scan_data.points:
-            degree_angle = math.degrees(point.angle)  # 각도를 도 단위로 변환
-            if 0.01 <= point.range <= 8.0:  # 유효한 거리 데이터(0.01m ~ 8m)
+        if r:
+            for point in scan_data.points:
+                degree_angle = math.degrees(point.angle)  # 각도를 도 단위로 변환
+                if 0.01 <= point.range <= 8.0:  # 유효한 거리 데이터(0.01m ~ 8m)
 
-                # 정면 (0도)
-                if -15 <= degree_angle <= 15:  # 0도 근처
-                    front_distance = min(front_distance, point.range)
+                    # 정면 (0도)
+                    if -15 <= degree_angle <= 15:  # 0도 근처
+                        front_distance = min(front_distance, point.range)
 
-                # 우측 (90도)
-                if 75 <= degree_angle <= 105:  # 90도 근처 (우측)
-                    right_distance = min(right_distance, point.range)
+                    # 우측 (90도)
+                    if 75 <= degree_angle <= 105:  # 90도 근처 (우측)
+                        right_distance = min(right_distance, point.range)
 
-                # 좌측 (-90도)
-                if -105 <= degree_angle <= -75:  # -90도 근처 (좌측)
-                    left_distance = min(left_distance, point.range)
+                    # 좌측 (-90도)
+                    if -105 <= degree_angle <= -75:  # -90도 근처 (좌측)
+                        left_distance = min(left_distance, point.range)
 
-    return front_distance, left_distance, right_distance
+        distances['front'] = front_distance
+        distances['left'] = left_distance
+        distances['right'] = right_distance
+        time.sleep(0.1)  # 데이터를 너무 자주 읽는 것을 방지
 
 # 이미지 처리 함수
 def process_image(frame):
@@ -200,6 +206,14 @@ def main():
     if laser is None:
         return
 
+    # Lidar 데이터를 저장할 딕셔너리
+    distances = {'front': float('inf'), 'left': float('inf'), 'right': float('inf')}
+
+    # Lidar 데이터를 별도의 스레드로 처리
+    lidar_thread = threading.Thread(target=get_lidar_data, args=(scan_data, laser, distances))
+    lidar_thread.daemon = True  # 메인 프로그램 종료 시 스레드도 종료
+    lidar_thread.start()
+
     try:
         while True:
             ret, frame = cap.read()
@@ -217,20 +231,16 @@ def main():
                 print("경고: 계산된 값이 NaN입니다.")
                 continue
 
-            # 라이다 데이터를 읽어옴
-            front_dist, left_dist, right_dist = get_lidar_data(scan_data, laser)
+            # 라이다 데이터를 읽어옴 (별도의 스레드에서 업데이트됨)
+            front_dist = distances['front']
+            left_dist = distances['left']
+            right_dist = distances['right']
             print(f"정면 거리: {front_dist:.2f} m, 좌측 거리: {left_dist:.2f} m, 우측 거리: {right_dist:.2f} m")
 
-            # 라이다 거리 기반으로 장애물 회피 로직 추가 가능
-            if front_dist < 0.5:  # 정면에 50cm 이내 장애물이 있는 경우
-                print("장애물 감지! 속도를 줄입니다.")
-                base_speed = 20  # 속도 감소
-            else:
-                base_speed = 100  # 정상 속도 유지
-
+            # 속도 계산
+            base_speed = 100  # 라인 감지 기반으로 설정
             pid_value = pid_control(diff, dt)
 
-            # 속도 계산
             left_motor_speed = base_speed + pid_value
             right_motor_speed = base_speed - pid_value
 
