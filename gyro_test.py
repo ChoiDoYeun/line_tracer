@@ -5,11 +5,16 @@ import board
 import busio
 import math
 
+# PID 제어 상수 설정
+Kp = 0.5  # 비례 상수
+Ki = 0.00  # 적분 상수
+Kd = 0.0   # 미분 상수
+
 # 자이로 센서 초기화
 i2c = busio.I2C(board.SCL, board.SDA)
 accelerometer = adafruit_adxl34x.ADXL345(i2c, address=0x1D)
 
-# MotorController 클래스
+# MotorController 클래스 (기존 코드 동일)
 class MotorController:
     def __init__(self, en, in1, in2):
         self.en = en
@@ -72,24 +77,43 @@ def get_angle():
     angle = math.degrees(math.atan2(x, y))  # X, Y축으로 각도 계산
     return angle
 
-# 45도 회전 함수
+
+
+# PID 제어 변수 초기화
+previous_error = 0
+integral = 0
+
+# PID 제어 기반 45도 회전 함수
 def rotate_to_angle(target_angle):
-    current_angle = get_angle()
-    while abs(current_angle - target_angle) > 1:  # 목표 각도에 도달할 때까지 회전
-        if current_angle < target_angle:
-            control_motors(-50, 50)  # 좌회전
-            time.sleep(0.5)  # 자주 업데이트하여 각도를 추적
-        else:
-            control_motors(50, -50)  # 우회전
-            time.sleep(0.5)  # 자주 업데이트하여 각도를 추적
-        time.sleep(0.05)  # 자주 업데이트하여 각도를 추적
+    global previous_error, integral
+
+    while True:
         current_angle = get_angle()
+        error = target_angle - current_angle
+
+        # PID 계산
+        proportional = error
+        integral += error * 0.1  # 0.1은 샘플링 시간 (적분을 과도하게 방지)
+        derivative = (error - previous_error) / 0.1
+
+        # PID 제어 신호 계산
+        control_signal = Kp * proportional + Ki * integral + Kd * derivative
+
+        # 모터 제어 (제어 신호를 속도로 변환)
+        control_motors(-control_signal, control_signal)  # 좌우 차이를 만들어 회전
+
+        # 오차가 충분히 작아지면 회전 멈춤
+        if abs(error) < 1:  # 오차가 1도 이하일 때 멈춤
+            break
+
+        previous_error = error
+        time.sleep(0.1)
 
     control_motors(0, 0)  # 회전 후 정지
 
 try:
     # 45도 회전
-    rotate_to_angle(30)
+    rotate_to_angle(45)
 finally:
     motor1.cleanup()
     motor2.cleanup()
