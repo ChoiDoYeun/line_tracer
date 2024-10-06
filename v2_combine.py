@@ -144,15 +144,15 @@ def get_lidar_data(lidar_queue):
                     if 0.01 <= point.range <= 8.0:
 
                         # 정면 (0도)
-                        if -10 <= degree_angle <= 10:
+                        if -1 <= degree_angle <= 1:
                             front_distance = min(front_distance, point.range)
 
                         # 우측 (90도)
-                        if 80 <= degree_angle <= 100:
+                        if 89 <= degree_angle <= 91:
                             right_distance = min(right_distance, point.range)
 
                         # 좌측 (-90도)
-                        if -100 <= degree_angle <= -80:
+                        if -91 <= degree_angle <= -89:
                             left_distance = min(left_distance, point.range)
 
             distances = {'front': front_distance, 'left': left_distance, 'right': right_distance}
