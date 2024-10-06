@@ -10,6 +10,8 @@ import sys
 sys.path.append('/home/dodo/YDLidar-SDK/build/python')  # Adjust the path if necessary
 import ydlidar
 
+OBSTACLE_THRESHOLD = 0.6  # 60cm
+
 # PID constants
 Kp = 0.50
 Ki = 0.00
@@ -197,7 +199,7 @@ def lidar_thread():
     laser.disconnecting()
     
 # 장애물 감지 후 라인 복귀 함수
-def avoid_obstacle_and_return():
+def avoid_obstacle_and_return(cap):
     # LiDAR 데이터 확인
     with lidar_lock:
         ld = left_distance
@@ -295,9 +297,6 @@ def avoid_obstacle_and_return():
 
     return
 
-# 장애물 감지 임계값 (단위: 미터)
-OBSTACLE_THRESHOLD = 0.6  # 60cm
-
 # 메인 제어 루프
 def main():
     cap = cv2.VideoCapture(0, cv2.CAP_V4L2)
@@ -335,7 +334,7 @@ def main():
 
             if obstacle_detected:
                 print("장애물 감지, 회피 동작 시작")
-                avoid_obstacle_and_return()
+                avoid_obstacle_and_return(cap)  # cap을 함수에 전달
                 continue  # 회피 후 라인 복귀 후 루프 재시작
 
             # 라인 추종 모드
