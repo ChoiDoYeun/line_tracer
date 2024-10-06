@@ -1,6 +1,6 @@
 import RPi.GPIO as GPIO
 import time
-from adafruit_adxl34x import ADXL345
+import adafruit_adxl34x
 import board
 import busio
 import math
