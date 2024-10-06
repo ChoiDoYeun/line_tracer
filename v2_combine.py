@@ -211,6 +211,7 @@ def avoid_obstacle_and_return():
         print("좌측 회피 시작")
         while ld > 0.4:
             control_motors(-50, 50)  # 좌측으로 회전
+            time.sleep(0.01)
             with lidar_lock:
                 ld = left_distance
             time.sleep(0.01)
