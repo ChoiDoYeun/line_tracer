@@ -1,7 +1,11 @@
 import RPi.GPIO as GPIO
 import time
 
-# MotorController 클래스 정의
+# GPIO 경고 메시지 비활성화
+GPIO.setwarnings(False)
+GPIO.setmode(GPIO.BCM)
+
+# MotorController 클래스
 class MotorController:
     def __init__(self, en, in1, in2):
         self.en = en
@@ -14,7 +18,6 @@ class MotorController:
         self.pwm.start(0)
 
     def set_speed(self, speed):
-        # 속도를 -50에서 50 사이로 제한
         speed = max(min(speed, 50), -50)
         self.pwm.ChangeDutyCycle(abs(speed))
 
@@ -37,14 +40,11 @@ class MotorController:
         self.pwm.stop()
         GPIO.cleanup([self.en, self.in1, self.in2])
 
-# GPIO 설정
-GPIO.setmode(GPIO.BCM)
-
-# 모터 초기화 (핀 번호는 사용 중인 모터에 맞게 설정)
-motor1 = MotorController(18, 17, 27) # left front
-motor2 = MotorController(22, 23, 24) # right front
-motor3 = MotorController(9, 10, 11)  # left back
-motor4 = MotorController(25, 8, 7)   # right back
+# 모터 초기화
+motor1 = MotorController(18, 17, 27)  # left front
+motor2 = MotorController(22, 23, 24)  # right front
+motor3 = MotorController(9, 10, 11)   # left back
+motor4 = MotorController(25, 8, 7)    # right back
 
 # 모터 제어 함수
 def control_motors(left_speed, right_speed):
