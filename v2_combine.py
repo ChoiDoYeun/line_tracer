@@ -202,6 +202,13 @@ def avoid_obstacle_and_return():
     with lidar_lock:
         ld = left_distance
         rd = right_distance
+
+    motor1.stop()
+    motor2.stop()
+    motor3.stop()
+    motor4.stop()
+    time.sleep(1)
+    print("정지")
     
     # 더 넓은 쪽으로 회피
     if ld > rd:
@@ -240,7 +247,7 @@ def avoid_obstacle_and_return():
     return
 
 # 장애물 감지 임계값 (단위: 미터)
-OBSTACLE_THRESHOLD = 0.5  # 50cm
+OBSTACLE_THRESHOLD = 0.6  # 50cm
 
 # 메인 제어 루프
 def main():
@@ -278,6 +285,7 @@ def main():
             obstacle_detected = fd < OBSTACLE_THRESHOLD
 
             if obstacle_detected:
+
                 print("장애물 감지, 회피 동작 시작")
                 avoid_obstacle_and_return()
                 continue  # 회피 후 라인 복귀 후 루프 재시작
