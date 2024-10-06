@@ -3,6 +3,7 @@ import time
 
 # 센서 초기화 (주소 0x1d 사용)
 sensor = mpu6050(0x1d)
+sensor.reset()
 
 while True:
     accel_data = sensor.get_accel_data()
