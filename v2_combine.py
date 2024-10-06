@@ -10,7 +10,7 @@ import threading
 
 
 # PID 상수
-Kp = 0.30
+Kp = 0.22
 Ki = 0.00
 Kd = 0.04
 
