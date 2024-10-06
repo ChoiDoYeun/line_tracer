@@ -88,6 +88,7 @@ def turn_to_angle(target_angle, speed=30, tolerance=5):
             control_motors(-turn_speed, turn_speed)  # 우회전
         
         current_angle = get_current_angle()  # 각도 업데이트
+        print (f"current_angle : {current_angle}")
         time.sleep(0.1)
     
     control_motors(0, 0)  # 회전 후 모터 정지
