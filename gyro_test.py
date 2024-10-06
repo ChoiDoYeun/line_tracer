@@ -68,23 +68,32 @@ def control_motors(left_speed, right_speed):
         motor2.backward(-right_speed)
         motor4.backward(-right_speed)
 
+# Y축 가속도 데이터를 사용해 각도 계산 함수
 def get_angle():
     accel_data = accelerometer.acceleration
     x, y, z = accel_data
-    angle = math.degrees(math.atan2(y, x))  # X와 Y축을 이용해 각도 계산
+    angle = math.degrees(math.atan2(x, y))  # X, Y축으로 각도 계산
     return angle
 
+# 45도 회전 함수
 def rotate_to_angle(target_angle):
     current_angle = get_angle()
     while abs(current_angle - target_angle) > 1:  # 목표 각도에 도달할 때까지 회전
         if current_angle < target_angle:
-            control_motors(-30, 30)  # 좌측 회전
+            control_motors(-100, 100)  # 좌회전
         else:
-            control_motors(30, -30)  # 우측 회전
-        time.sleep(0.1)
+            control_motors(100, -100)  # 우회전
+        time.sleep(0.51)
         current_angle = get_angle()
 
     control_motors(0, 0)  # 회전 후 정지
 
-# 45도 회전
-rotate_to_angle(45)
+try:
+    # 45도 회전
+    rotate_to_angle(45)
+finally:
+    motor1.cleanup()
+    motor2.cleanup()
+    motor3.cleanup()
+    motor4.cleanup()
+    GPIO.cleanup()
