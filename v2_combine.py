@@ -243,6 +243,7 @@ def main():
 
             left_motor_speed = base_speed + pid_value
             right_motor_speed = base_speed - pid_value
+            print(f"left : {left_motor_speed} , right : {right_motor_speed}")
 
             # 모터 제어 함수 호출
             control_motors(left_motor_speed, right_motor_speed)
