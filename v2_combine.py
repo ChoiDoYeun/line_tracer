@@ -243,6 +243,11 @@ def avoid_obstacle_and_return():
         time.sleep(0.1)
         control_motors(-50, 50) # 좌회전
         time.sleep(0.75)
+        motor1.stop()
+        motor2.stop()
+        motor3.stop()
+        motor4.stop()
+        time.sleep(0.1)        
         
     else:
         print("우측 회피")
