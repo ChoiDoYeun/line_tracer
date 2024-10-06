@@ -9,3 +9,4 @@ accelerometer = adafruit_adxl34x.ADXL345(i2c, address=0x1D)
 # 가속도 데이터 읽기
 while True:
     print("X: {0}, Y: {1}, Z: {2}".format(*accelerometer.acceleration))
+    time.sleep(1)
