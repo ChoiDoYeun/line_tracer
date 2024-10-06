@@ -6,9 +6,9 @@ import busio
 import math
 
 # PID 제어 상수 설정
-Kp = 0.1  # 비례 상수
+Kp = 0.2  # 비례 상수
 Ki = 0.00  # 적분 상수
-Kd = 0.05   # 미분 상수
+Kd = 0.0   # 미분 상수
 
 # 자이로 센서 초기화
 i2c = busio.I2C(board.SCL, board.SDA)
