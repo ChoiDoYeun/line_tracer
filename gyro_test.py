@@ -7,7 +7,7 @@ import math
 
 # 자이로 센서 초기화
 i2c = busio.I2C(board.SCL, board.SDA)
-accelerometer = ADXL345(i2c)
+accelerometer = adafruit_adxl34x.ADXL345(i2c, address=0x1D)
 
 # MotorController 클래스
 class MotorController:
