@@ -193,8 +193,10 @@ def lidar_thread():
         laser.turnOff()
     laser.disconnecting()
 
+# 장애물 감지 임계값 (단위: 미터)
+OBSTACLE_THRESHOLD = 0.5  # 50cm
 
-# Main control loop
+# 메인 제어 루프 수정
 def main():
     cap = cv2.VideoCapture(0, cv2.CAP_V4L2)
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, 424)
@@ -206,7 +208,7 @@ def main():
 
     prev_time = time.time()
 
-    # Start LiDAR thread
+    # LiDAR 스레드 시작
     lidar_thread_instance = threading.Thread(target=lidar_thread)
     lidar_thread_instance.daemon = True
     lidar_thread_instance.start()
@@ -222,38 +224,56 @@ def main():
             dt = current_time - prev_time
             prev_time = current_time
 
+            # LiDAR 데이터 접근
+            with lidar_lock:
+                fd = front_distance
+                ld = left_distance
+                rd = right_distance
+
+            # 장애물 감지 여부 판단
+            obstacle_detected = fd < OBSTACLE_THRESHOLD
+
+            if obstacle_detected:
+                # 장애물 회피 동작
+                print("장애물 감지! 회피 동작 수행 중...")
+                if ld > rd:
+                    # 좌측 회피
+                    left_motor_speed = -30  # 좌회전
+                    right_motor_speed = 30
+                else:
+                    # 우측 회피
+                    left_motor_speed = 30
+                    right_motor_speed = -30  # 우회전
+
+                # 모터 제어 함수 호출
+                control_motors(left_motor_speed, right_motor_speed)
+                time.sleep(0.5)  # 회피 동작 지속 시간 조절
+
+                # 회피 후 잠시 직진
+                control_motors(40, 40)
+                time.sleep(0.5)
+
+                # 원래 라인으로 복귀하기 위해 계속 진행
+                continue
+
+            # 라인 추종 모드
             line_center_x, diff = process_image(frame)
 
             if math.isnan(line_center_x) or math.isnan(diff):
                 print("Warning: Computed value is NaN.")
                 continue
 
-            # Within threshold, base_speed = 50; outside threshold, base_speed = 0
-            if -60 <= diff <= 60:
-                base_speed = 100  # Maintain speed within threshold
-                pid_value = 0  # Set correction value to 0
-            else:
-                base_speed = 20  # Stop when outside threshold
-                pid_value = pid_control(diff, dt)
+            # PID 제어 적용
+            pid_value = pid_control(diff, dt)
+            base_speed = 40  # 기본 속도 설정
 
-            # Calculate speeds
+            # 모터 속도 계산
             left_motor_speed = base_speed + pid_value
             right_motor_speed = base_speed - pid_value
 
             print(f"Left: {left_motor_speed}, Right: {right_motor_speed}")
 
-            # Access LiDAR data
-            with lidar_lock:
-                fd = front_distance
-                ld = left_distance
-                rd = right_distance
-
-            # Optionally, print or use the LiDAR data
-            print(f"Front distance: {fd * 100:.2f} cm" if fd != float('inf') else "No object detected in front.")
-            print(f"Left distance: {ld * 100:.2f} cm" if ld != float('inf') else "No object detected on the left.")
-            print(f"Right distance: {rd * 100:.2f} cm" if rd != float('inf') else "No object detected on the right.")
-
-            # Call motor control function
+            # 모터 제어 함수 호출
             control_motors(left_motor_speed, right_motor_speed)
 
             if cv2.waitKey(1) & 0xFF == ord('q'):
@@ -268,12 +288,7 @@ def main():
         motor2.cleanup()
         motor3.cleanup()
         motor4.cleanup()
-        ydlidar.os_shutdown()  # Signal LiDAR thread to stop
+        ydlidar.os_shutdown()  # LiDAR 스레드 종료 신호
 
     cap.release()
     cv2.destroyAllWindows()
-
-# Program execution
-if __name__ == "__main__":
-    GPIO.setmode(GPIO.BCM)
-    main()
