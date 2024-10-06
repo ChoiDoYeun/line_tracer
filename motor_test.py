@@ -73,8 +73,10 @@ try:
     motor3.stop()
     motor4.stop()
     time.sleep(0.5)
+    control_motors(-100, 100)
+    time.sleep(0.8)
     control_motors(100, -100)  # 우회전
-    time.sleep(1.6)
+    time.sleep(0.8)
 
 
 finally:
