@@ -70,56 +70,42 @@ def control_motors(left_speed, right_speed):
         motor2.backward(-right_speed)
         motor4.backward(-right_speed)
 
-# Y축 가속도 데이터를 사용해 각도 계산 함수
-def get_angle():
-    accel_data = accelerometer.acceleration
-    x, y, z = accel_data
-    angle = math.degrees(math.atan2(x, y))  # X, Y축으로 각도 계산
-    return x, y, angle
+# 현재 각도를 추적하기 위한 변수 초기화
+current_angle = 0
+last_time = time.time()
 
-# PID 제어 변수 초기화
-previous_error = 0
-integral = 0
+def get_current_angle():
+    global current_angle, last_time
+    now = time.time()
+    dt = now - last_time
+    last_time = now
+    # 자이로 센서에서 Z축 각속도 읽기 (라디안/초)
+    gyro_z = imu.gyro[2]
+    # 각속도를 적분하여 각도 계산 (도 단위로 변환)
+    current_angle += math.degrees(gyro_z * dt)
+    return current_angle
 
-# PID 제어 기반 45도 회전 함수
 def rotate_to_angle(target_angle):
-    global previous_error, integral
+    angle_tolerance = 5  # 허용 오차 (도)
+    speed = 50  # 모터 속도
+    current_angle = get_current_angle()
+    while abs(current_angle - target_angle) > angle_tolerance:
+        if current_angle < target_angle:
+            # 시계 방향 회전
+            control_motors(left_speed=speed, right_speed=-speed)
+        else:
+            # 반시계 방향 회전
+            control_motors(left_speed=-speed, right_speed=speed)
+        time.sleep(0.01)  # 작은 딜레이
+        current_angle = get_current_angle()
+    # 목표 각도에 도달하면 모터 정지
+    control_motors(0, 0)
 
-    # 처음 좌표 측정
-    initial_x, initial_y, initial_angle = get_angle()
-    print(f"Initial X: {initial_x:.2f}, Initial Y: {initial_y:.2f}, Initial Angle: {initial_angle:.2f}°")
-
-    while True:
-        current_x, current_y, current_angle = get_angle()
-        error = target_angle - current_angle
-
-        # PID 계산
-        proportional = error
-        integral += error * 0.1  # 0.1은 샘플링 시간 (적분을 과도하게 방지)
-        derivative = (error - previous_error) / 0.1
-
-        # PID 제어 신호 계산
-        control_signal = Kp * proportional + Ki * integral + Kd * derivative
-
-        # 디버깅 정보 출력 (좌표와 제어 신호)
-        print(f"Current X: {current_x:.2f}, Current Y: {current_y:.2f}, Error X: {initial_x - current_x:.2f}, Error Y: {initial_y - current_y:.2f}")
-
-        # 모터 제어 (제어 신호를 속도로 변환)
-        control_motors(-control_signal, control_signal)  # 좌우 차이를 만들어 회전
-
-        # 오차가 충분히 작아지면 회전 멈춤
-        if abs(error) < 1:  # 오차가 1도 이하일 때 멈춤
-            break
-
-        previous_error = error
-        time.sleep(0.1)
-
-    control_motors(0, 0)  # 회전 후 정지
-
+# 예제 사용법: 로봇을 90도 회전시키기
 try:
-    # 45도 회전
-    rotate_to_angle(45)
+    rotate_to_angle(90)
 finally:
+    # 프로그램 종료 시 리소스 정리
     motor1.cleanup()
     motor2.cleanup()
     motor3.cleanup()
