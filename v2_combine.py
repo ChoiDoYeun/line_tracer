@@ -101,7 +101,10 @@ def control_motors(left_speed, right_speed):
         motor4.backward(-right_speed)
 # 이미지 처리 함수
 def process_image(frame):
-    hls = cv2.cvtColor(frame, cv2.COLOR_BGR2HLS)
+    height, width = frame.shape[:2]
+    roi = frame[int(height*0.5):height, 0:width]
+    
+    hls = cv2.cvtColor(roi, cv2.COLOR_BGR2HLS)
     s_channel = hls[:, :, 2]
     blurred = cv2.GaussianBlur(s_channel, (5, 5), 0)
     canny_edges = cv2.Canny(blurred, 50, 150)
