@@ -73,12 +73,12 @@ def get_current_angle():
     return pitch
 
 # 회전 각도 제어 함수 (피드백 제어)
-def turn_to_angle(target_angle, speed=30, tolerance=2):
+def turn_to_angle(target_angle, speed=30, tolerance=5):
     current_angle = get_current_angle()
-    
+    print (f"current_angle : {current_angle}")
     while abs(target_angle - current_angle) > tolerance:
         error = target_angle - current_angle
-        
+
         # PID 제어로 속도 조정 가능 (간단히 proportional 제어)
         turn_speed = error * 0.5  # P 제어 계수 0.5로 설정
         
