@@ -267,7 +267,9 @@ def avoid_obstacle_and_return(cap):
         motor2.stop()
         motor3.stop()
         motor4.stop()
-        time.sleep(0.1)        
+        time.sleep(0.1)
+
+        print("회피 끝")
         
     else:
         print("우측 회피")
