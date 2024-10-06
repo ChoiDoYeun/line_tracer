@@ -217,15 +217,17 @@ def avoid_obstacle_and_return():
         control_motors(-50, 50) # 좌회전
         time.sleep(0.75)  # 회피 시간 설정
         control_motors(40, 40) # 직진
-        time.sleep(1)
+        time.sleep(0.75)
         control_motors(50,-50) # 우회전
-        time.sleep(1)
+        time.sleep(0.75)
         control_motors(40, 40) # 직진
         time.sleep(0.75)
         control_motors(50,-50) # 우회전
-        time.sleep(1)
+        time.sleep(0.75)
         control_motors(40, 40) # 직진
-        time.sleep(1)
+        time.sleep(0.75)
+        control_motors(-50, 50) # 좌회전
+        time.sleep(0.75)
         
     else:
         print("우측 회피")
