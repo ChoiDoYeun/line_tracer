@@ -216,15 +216,24 @@ def avoid_obstacle_and_return():
         # 좌측으로 회피하며 대각선 이동
         control_motors(-50, 50)
         time.sleep(0.5)  # 회피 시간 설정
+        control_motors(40, 40)
+        time.sleep(1)
+        control_motors(50,-50)
+        time.sleep(0.5)
+        control_motors(40, 40)
+        time.sleep(1)
     else:
         print("우측 회피")
         # 우측으로 회피하며 대각선 이동
         control_motors(50, -50)
         time.sleep(0.5)  # 회피 시간 설정
-
-    # 회피 후 직진하며 다시 라인 탐색
-    print("직진하며 라인 복귀 시도 중...")
-    control_motors(40, 40)
+        control_motors(40, 40)
+        time.sleep(1)
+        control_motors(-50,50)
+        time.sleep(0.5)
+        control_motors(40, 40)
+        time.sleep(1)
+    
     time.sleep(1)  # 라인 복귀 전 직진 시간 설정
 
     # 라인 탐색
