@@ -80,7 +80,7 @@ def rotate_to_angle(target_angle):
             control_motors(-50, 50)  # 좌회전
         else:
             control_motors(50, -50)  # 우회전
-        time.sleep(0.05)  # 자주 업데이트하여 각도를 추적
+        time.sleep(0.1)  # 자주 업데이트하여 각도를 추적
         current_angle = get_angle()
 
     control_motors(0, 0)  # 회전 후 정지
