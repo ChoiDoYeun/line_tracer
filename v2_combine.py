@@ -360,9 +360,12 @@ def main():
                 print("Warning: Computed value is NaN.")
                 continue
 
-            # PID 제어 적용
-            pid_value = pid_control(diff, dt)
-            base_speed = 40  # 기본 속도 설정
+            if -60 <= diff <= 60:
+                base_speed = 80
+                pid_value = 0
+            else:
+                base_speed = 20
+                pid_value = pid_control(diff, dt)
 
             # 모터 속도 계산
             left_motor_speed = base_speed + pid_value
