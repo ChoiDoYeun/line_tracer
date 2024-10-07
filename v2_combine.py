@@ -185,13 +185,13 @@ def lidar_thread():
                     degree_angle = math.degrees(point.angle)
                     if 0.01 <= point.range <= 8.0:
                         # Front (0 degrees)
-                        if -1 <= degree_angle <= 1:
+                        if -5 <= degree_angle <= 5:
                             front_distance = min(front_distance, point.range)
                         # Right (90 degrees)
-                        elif 89 <= degree_angle <= 91:
+                        elif 85 <= degree_angle <= 95:
                             right_distance = min(right_distance, point.range)
                         # Left (-90 degrees)
-                        elif -91 <= degree_angle <= -89:
+                        elif -95 <= degree_angle <= -85:
                             left_distance = min(left_distance, point.range)
             # Short sleep to prevent high CPU usage
             time.sleep(0.01)
