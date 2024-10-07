@@ -13,7 +13,7 @@ import ydlidar
 OBSTACLE_THRESHOLD = 0.6  # 60cm
 
 # PID constants
-Kp = 0.50
+Kp = 1.00
 Ki = 0.00
 Kd = 0.04
 
