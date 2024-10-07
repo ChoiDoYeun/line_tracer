@@ -376,7 +376,7 @@ def main():
                 continue
 
             if -60 <= diff <= 60:
-                base_speed = 30
+                base_speed = 60
                 pid_value = 0
             else:
                 base_speed = 20
