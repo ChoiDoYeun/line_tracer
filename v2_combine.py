@@ -46,7 +46,7 @@ class MotorController:
         self.pwm.start(0)
 
     def set_speed(self, speed):
-        speed = max(min(speed, 60), -60)
+        speed = max(min(speed, 50), -50)
         self.pwm.ChangeDutyCycle(abs(speed))
 
     def forward(self, speed=40):
@@ -376,7 +376,7 @@ def main():
                 continue
 
             if -40 <= diff <= 40:
-                base_speed = 60
+                base_speed = 30
                 pid_value = 0
             else:
                 base_speed = 20
