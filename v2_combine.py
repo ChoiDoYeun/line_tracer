@@ -10,12 +10,12 @@ import sys
 sys.path.append('/home/dodo/YDLidar-SDK/build/python')  # Adjust the path if necessary
 import ydlidar
 
-OBSTACLE_THRESHOLD = 0.6  # 60cm
+OBSTACLE_THRESHOLD = 0.4  # 60cm
 
 # PID constants
-Kp = 1.00
-Ki = 0.00
-Kd = 0.04
+Kp = 0.55
+Ki = 0.005
+Kd = 0.004
 
 # PID variables
 prev_error = 0.0
@@ -375,12 +375,8 @@ def main():
                 print("Warning: Computed value is NaN.")
                 continue
 
-            if -60 <= diff <= 60:
-                base_speed = 60
-                pid_value = 0
-            else:
-                base_speed = 20
-                pid_value = pid_control(diff, dt)
+            pid_value = pid_control(diff, dt)
+            base_speed = 20
 
             # 모터 속도 계산
             left_motor_speed = base_speed + pid_value
