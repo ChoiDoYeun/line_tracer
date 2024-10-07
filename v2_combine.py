@@ -324,6 +324,7 @@ def main():
         return
 
     prev_time = time.time()
+    line_not_detected_count = 0  # 라인이 연속으로 감지되지 않는 횟수
 
     # LiDAR 스레드 시작
     lidar_thread_instance = threading.Thread(target=lidar_thread)
@@ -348,14 +349,28 @@ def main():
             # 장애물 감지 여부 판단
             obstacle_detected = fd < OBSTACLE_THRESHOLD
 
-            if obstacle_detected:
+            # 라인 감지
+            line_center_x, diff = process_image(frame)
+
+            # 라인이 감지되지 않은 경우
+            if not line_center_x or not diff:
+                line_not_detected_count += 1
+            else:
+                line_not_detected_count = 0
+
+            # 미로 모드 조건
+            if line_not_detected_count >= 5 and obstacle_detected:
+                print("미로 모드 진입")
+                # 미로 모드 구현 (추후 추가)
+                continue
+
+            # 장애물 회피 모드 조건
+            if line_center_x and diff and obstacle_detected:
                 print("장애물 감지, 회피 동작 시작")
-                avoid_obstacle_and_return(cap)  # cap을 함수에 전달
+                avoid_obstacle_and_return(cap)
                 continue  # 회피 후 라인 복귀 후 루프 재시작
 
             # 라인 추종 모드
-            line_center_x, diff = process_image(frame)
-
             if math.isnan(line_center_x) or math.isnan(diff):
                 print("Warning: Computed value is NaN.")
                 continue
