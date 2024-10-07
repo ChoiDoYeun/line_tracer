@@ -375,7 +375,7 @@ def main():
                 print("Warning: Computed value is NaN.")
                 continue
 
-            if -60 <= diff <= 60:
+            if -40 <= diff <= 40:
                 base_speed = 60
                 pid_value = 0
             else:
