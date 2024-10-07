@@ -13,7 +13,7 @@ import ydlidar
 OBSTACLE_THRESHOLD = 0.6  # 60cm
 
 # PID constants
-Kp = 0.30
+Kp = 0.40
 Ki = 0.00
 Kd = 0.04
 
@@ -376,7 +376,7 @@ def main():
                 continue
 
             if -60 <= diff <= 60:
-                base_speed = 80
+                base_speed = 60
                 pid_value = 0
             else:
                 base_speed = 20
