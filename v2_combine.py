@@ -13,7 +13,7 @@ import ydlidar
 OBSTACLE_THRESHOLD = 0.6  # 60cm
 
 # PID constants
-Kp = 1.00
+Kp = 0.50
 Ki = 0.00
 Kd = 0.04
 
@@ -46,7 +46,7 @@ class MotorController:
         self.pwm.start(0)
 
     def set_speed(self, speed):
-        speed = max(min(speed, 50), -50)
+        speed = max(min(speed, 80), -80)
         self.pwm.ChangeDutyCycle(abs(speed))
 
     def forward(self, speed=40):
